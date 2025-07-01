@@ -41,8 +41,14 @@ export default function AdminLoginPage() {
     // Simulate loading delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Check hardcoded credentials
-    if (formData.email === 'admin@example.com' && formData.password === 'admin123') {
+    // Get saved credentials or use defaults
+    const savedCredentials = localStorage.getItem('adminCredentials');
+    const credentials = savedCredentials 
+      ? JSON.parse(savedCredentials)
+      : { email: 'admin@example.com', password: 'admin123' };
+
+    // Check credentials
+    if (formData.email === credentials.email && formData.password === credentials.password) {
       localStorage.setItem('isAdmin', 'true');
       localStorage.setItem('adminLoginTime', new Date().toISOString());
       router.push('/admin/dashboard');
@@ -146,7 +152,7 @@ export default function AdminLoginPage() {
 
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-600 text-center mb-2">
-              {isRTL ? 'بيانات الدخول التجريبية:' : 'Demo Credentials:'}
+              {isRTL ? 'بيانات الدخول الافتراضية:' : 'Default Credentials:'}
             </p>
             <div className="text-xs text-gray-700 space-y-1">
               <div><strong>Email:</strong> admin@example.com</div>

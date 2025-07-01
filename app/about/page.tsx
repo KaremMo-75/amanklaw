@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,32 @@ import { Scale, Target, Eye, Users, Award, CheckCircle, Globe, Briefcase } from 
 
 export default function AboutPage() {
   const { isRTL, t } = useLanguage();
+  const [siteContent, setSiteContent] = useState<any>(null);
+
+  useEffect(() => {
+    // Load site content from localStorage
+    const savedContent = localStorage.getItem('siteContent');
+    if (savedContent) {
+      setSiteContent(JSON.parse(savedContent));
+    }
+  }, []);
+
+  // Use saved content or fallback to defaults
+  const aboutTitle = siteContent?.about?.titleAr && siteContent?.about?.titleEn
+    ? (isRTL ? siteContent.about.titleAr : siteContent.about.titleEn)
+    : t('aboutTitle');
+
+  const aboutContent = siteContent?.about?.contentAr && siteContent?.about?.contentEn
+    ? (isRTL ? siteContent.about.contentAr : siteContent.about.contentEn)
+    : t('aboutIntro');
+
+  const missionText = siteContent?.about?.missionAr && siteContent?.about?.missionEn
+    ? (isRTL ? siteContent.about.missionAr : siteContent.about.missionEn)
+    : t('missionText');
+
+  const visionText = siteContent?.about?.visionAr && siteContent?.about?.visionEn
+    ? (isRTL ? siteContent.about.visionAr : siteContent.about.visionEn)
+    : t('visionText');
 
   const stats = [
     { icon: Users, value: '500+', label: isRTL ? 'عميل راضي' : 'Satisfied Clients' },
@@ -53,9 +79,9 @@ export default function AboutPage() {
       <section className="bg-gradient-to-br from-blue-900 to-blue-800 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">{t('aboutTitle')}</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">{aboutTitle}</h1>
             <p className="text-xl text-blue-100 max-w-3xl mx-auto leading-relaxed">
-              {t('aboutIntro')}
+              {aboutContent}
             </p>
           </div>
           
@@ -86,7 +112,7 @@ export default function AboutPage() {
                   <h2 className="text-2xl font-bold text-gray-900">{t('mission')}</h2>
                 </div>
                 <p className="text-gray-600 leading-relaxed text-lg">
-                  {t('missionText')}
+                  {missionText}
                 </p>
               </CardContent>
             </Card>
@@ -100,13 +126,34 @@ export default function AboutPage() {
                   <h2 className="text-2xl font-bold text-gray-900">{t('vision')}</h2>
                 </div>
                 <p className="text-gray-600 leading-relaxed text-lg">
-                  {t('visionText')}
+                  {visionText}
                 </p>
               </CardContent>
             </Card>
           </div>
         </div>
       </section>
+
+      {/* About Image Section */}
+      {siteContent?.about?.image && (
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                {isRTL ? 'مكتبنا' : 'Our Office'}
+              </h2>
+              <div className="w-24 h-1 bg-yellow-500 mx-auto"></div>
+            </div>
+            <div className="max-w-4xl mx-auto">
+              <img 
+                src={siteContent.about.image} 
+                alt="About Us" 
+                className="w-full h-96 object-cover rounded-lg shadow-xl"
+              />
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Our Values */}
       <section className="py-20 bg-white">

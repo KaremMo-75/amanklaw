@@ -15,7 +15,10 @@ import {
   Eye,
   LogOut,
   Calendar,
-  TrendingUp
+  TrendingUp,
+  Edit,
+  User,
+  MessageSquare
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -68,11 +71,32 @@ export default function AdminDashboard() {
       color: 'bg-blue-500 hover:bg-blue-600'
     },
     {
+      title: isRTL ? 'تحرير محتوى الموقع' : 'Edit Site Content',
+      description: isRTL ? 'تحديث محتوى الصفحات الرئيسية' : 'Update main page content',
+      icon: Edit,
+      href: '/admin/content',
+      color: 'bg-purple-500 hover:bg-purple-600'
+    },
+    {
       title: isRTL ? 'تحرير معلومات الموقع' : 'Edit Site Info',
       description: isRTL ? 'تحديث اسم ووصف الموقع' : 'Update site name and description',
       icon: Settings,
       href: '/admin/edit-site',
-      color: 'bg-purple-500 hover:bg-purple-600'
+      color: 'bg-orange-500 hover:bg-orange-600'
+    },
+    {
+      title: isRTL ? 'إعدادات الحساب' : 'Account Settings',
+      description: isRTL ? 'إدارة بيانات الحساب وكلمة المرور' : 'Manage account details and password',
+      icon: User,
+      href: '/admin/account-settings',
+      color: 'bg-indigo-500 hover:bg-indigo-600'
+    },
+    {
+      title: isRTL ? 'إعدادات الاتصال' : 'Contact Settings',
+      description: isRTL ? 'تحديث رابط واتساب وأزرار الاتصال' : 'Update WhatsApp link and contact buttons',
+      icon: MessageSquare,
+      href: '/admin/content?tab=contact',
+      color: 'bg-teal-500 hover:bg-teal-600'
     }
   ];
 
@@ -162,7 +186,7 @@ export default function AdminDashboard() {
           <h3 className="text-xl font-bold text-gray-900 mb-6">
             {isRTL ? 'الإجراءات السريعة' : 'Quick Actions'}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {quickActions.map((action, index) => (
               <Card key={index} className="bg-white shadow-lg border-0 hover:shadow-xl transition-shadow duration-300">
                 <CardContent className="p-6">

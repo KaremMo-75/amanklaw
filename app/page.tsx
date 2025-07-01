@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -9,43 +9,90 @@ import { Scale, Users, Award, Shield, ArrowRight, Phone, CheckCircle } from 'luc
 
 export default function HomePage() {
   const { isRTL, t } = useLanguage();
+  const [siteContent, setSiteContent] = useState<any>(null);
 
-  const features = [
-    {
-      icon: Award,
-      title: t('experience'),
-      description: t('experienceDesc'),
-    },
-    {
-      icon: Shield,
-      title: t('trust'),
-      description: t('trustDesc'),
-    },
-    {
-      icon: CheckCircle,
-      title: t('results'),
-      description: t('resultsDesc'),
-    },
-  ];
+  useEffect(() => {
+    // Load site content from localStorage
+    const savedContent = localStorage.getItem('siteContent');
+    if (savedContent) {
+      setSiteContent(JSON.parse(savedContent));
+    }
+  }, []);
+
+  // Use saved content or fallback to defaults
+  const heroTitle = siteContent?.homepage?.heroTitleAr && siteContent?.homepage?.heroTitleEn
+    ? (isRTL ? siteContent.homepage.heroTitleAr : siteContent.homepage.heroTitleEn)
+    : t('heroTitle');
+
+  const heroSubtitle = siteContent?.homepage?.heroSubtitleAr && siteContent?.homepage?.heroSubtitleEn
+    ? (isRTL ? siteContent.homepage.heroSubtitleAr : siteContent.homepage.heroSubtitleEn)
+    : t('heroSubtitle');
+
+  const heroButtonText = siteContent?.homepage?.heroButtonTextAr && siteContent?.homepage?.heroButtonTextEn
+    ? (isRTL ? siteContent.homepage.heroButtonTextAr : siteContent.homepage.heroButtonTextEn)
+    : t('heroButton');
+
+  const contactButtonText = siteContent?.contact?.contactButtonTextAr && siteContent?.contact?.contactButtonTextEn
+    ? (isRTL ? siteContent.contact.contactButtonTextAr : siteContent.contact.contactButtonTextEn)
+    : t('contact');
+
+  const whatsappUrl = siteContent?.contact?.whatsappUrl || 'https://wa.me/966111234567';
+
+  const features = siteContent?.homepage?.featuresAr && siteContent?.homepage?.featuresEn
+    ? (isRTL ? siteContent.homepage.featuresAr : siteContent.homepage.featuresEn)
+    : [
+        {
+          icon: Award,
+          title: t('experience'),
+          description: t('experienceDesc'),
+        },
+        {
+          icon: Shield,
+          title: t('trust'),
+          description: t('trustDesc'),
+        },
+        {
+          icon: CheckCircle,
+          title: t('results'),
+          description: t('resultsDesc'),
+        },
+      ];
+
+  const handleContactClick = () => {
+    window.open(whatsappUrl, '_blank');
+  };
 
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white py-20 overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-20"></div>
+        {siteContent?.homepage?.heroImage && (
+          <div className="absolute inset-0">
+            <img 
+              src={siteContent.homepage.heroImage} 
+              alt="Hero" 
+              className="w-full h-full object-cover opacity-30"
+            />
+          </div>
+        )}
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="text-center lg:text-start rtl:lg:text-right">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-                {t('heroTitle')}
+                {heroTitle}
               </h1>
               <p className="text-xl md:text-2xl text-blue-100 mb-8 leading-relaxed">
-                {t('heroSubtitle')}
+                {heroSubtitle}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start rtl:lg:justify-end">
-                <Button size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8 py-4 text-lg">
+                <Button 
+                  size="lg" 
+                  className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8 py-4 text-lg"
+                  onClick={handleContactClick}
+                >
                   <Phone className="w-5 h-5 ml-2 rtl:ml-0 rtl:mr-2" />
-                  {t('heroButton')}
+                  {heroButtonText}
                 </Button>
                 <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-800 px-8 py-4 text-lg">
                   <Link href="/services" className="flex items-center">
@@ -87,7 +134,11 @@ export default function HomePage() {
               <Card key={index} className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
                 <CardContent className="p-8 text-center">
                   <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <feature.icon className="w-8 h-8 text-blue-800" />
+                    {feature.icon ? (
+                      <feature.icon className="w-8 h-8 text-blue-800" />
+                    ) : (
+                      <Award className="w-8 h-8 text-blue-800" />
+                    )}
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-4">
                     {feature.title}
@@ -160,11 +211,13 @@ export default function HomePage() {
             }
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold">
-              <Link href="/contact">
-                <Phone className="w-5 h-5 ml-2 rtl:ml-0 rtl:mr-2" />
-                {t('contact')}
-              </Link>
+            <Button 
+              size="lg" 
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold"
+              onClick={handleContactClick}
+            >
+              <Phone className="w-5 h-5 ml-2 rtl:ml-0 rtl:mr-2" />
+              {contactButtonText}
             </Button>
             <Button asChild variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-800">
               <Link href="/about">

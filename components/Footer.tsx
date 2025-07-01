@@ -1,12 +1,40 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Scale, MapPin, Phone, Mail, Clock, Facebook, Twitter, Linkedin, Instagram } from 'lucide-react';
 
 export default function Footer() {
   const { isRTL, t } = useLanguage();
+  const [siteContent, setSiteContent] = useState<any>(null);
+
+  useEffect(() => {
+    // Load site content from localStorage
+    const savedContent = localStorage.getItem('siteContent');
+    if (savedContent) {
+      setSiteContent(JSON.parse(savedContent));
+    }
+  }, []);
+
+  // Use saved content or fallback to defaults
+  const description = siteContent?.footer?.descriptionAr && siteContent?.footer?.descriptionEn
+    ? (isRTL ? siteContent.footer.descriptionAr : siteContent.footer.descriptionEn)
+    : (isRTL 
+        ? 'مكتب أمانك للمحاماة والاستشارات القانونية - خبرة تزيد عن 15 عامًا في تقديم الخدمات القانونية المتميزة'
+        : 'Amank Law Firm - Over 15 years of experience providing exceptional legal services'
+      );
+
+  const address = siteContent?.footer?.addressAr && siteContent?.footer?.addressEn
+    ? (isRTL ? siteContent.footer.addressAr : siteContent.footer.addressEn)
+    : (isRTL ? 'الرياض، المملكة العربية السعودية' : 'Riyadh, Saudi Arabia');
+
+  const workingHours = siteContent?.footer?.workingHoursAr && siteContent?.footer?.workingHoursEn
+    ? (isRTL ? siteContent.footer.workingHoursAr : siteContent.footer.workingHoursEn)
+    : t('sunThu');
+
+  const phone = siteContent?.footer?.phone || '+966 11 123 4567';
+  const email = siteContent?.footer?.email || 'info@amank-law.com';
 
   return (
     <footer className="bg-gray-900 text-white">
@@ -21,10 +49,7 @@ export default function Footer() {
               </div>
             </div>
             <p className="text-gray-300 text-sm leading-relaxed">
-              {isRTL 
-                ? 'مكتب أمانك للمحاماة والاستشارات القانونية - خبرة تزيد عن 15 عامًا في تقديم الخدمات القانونية المتميزة'
-                : 'Amank Law Firm - Over 15 years of experience providing exceptional legal services'
-              }
+              {description}
             </p>
           </div>
 
@@ -59,23 +84,20 @@ export default function Footer() {
               <div className="flex items-start space-x-3 rtl:space-x-reverse">
                 <MapPin className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
                 <div className="text-gray-300 text-sm">
-                  {isRTL 
-                    ? 'الرياض، المملكة العربية السعودية'
-                    : 'Riyadh, Saudi Arabia'
-                  }
+                  {address}
                 </div>
               </div>
               <div className="flex items-center space-x-3 rtl:space-x-reverse">
                 <Phone className="h-5 w-5 text-yellow-500 flex-shrink-0" />
-                <div className="text-gray-300 text-sm">+966 11 123 4567</div>
+                <div className="text-gray-300 text-sm">{phone}</div>
               </div>
               <div className="flex items-center space-x-3 rtl:space-x-reverse">
                 <Mail className="h-5 w-5 text-yellow-500 flex-shrink-0" />
-                <div className="text-gray-300 text-sm">info@amank-law.com</div>
+                <div className="text-gray-300 text-sm">{email}</div>
               </div>
               <div className="flex items-start space-x-3 rtl:space-x-reverse">
                 <Clock className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
-                <div className="text-gray-300 text-sm">{t('sunThu')}</div>
+                <div className="text-gray-300 text-sm">{workingHours}</div>
               </div>
             </div>
 
