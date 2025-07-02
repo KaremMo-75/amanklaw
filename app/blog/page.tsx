@@ -11,9 +11,7 @@ import {
   Calendar, 
   User, 
   ArrowRight, 
-  Plus, 
   Search, 
-  Filter,
   BookOpen,
   Clock
 } from 'lucide-react';
@@ -157,46 +155,37 @@ export default function BlogPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-900 to-blue-800 text-white py-20">
+      <section className="bg-gradient-to-br from-blue-900 to-blue-800 dark:from-gray-900 dark:to-gray-800 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">{t('blogTitle')}</h1>
-            <p className="text-xl text-blue-100 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-blue-100 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
               {isRTL 
                 ? 'اكتشف أحدث المقالات والتحديثات القانونية من خبراء أمانك'
                 : 'Discover the latest legal articles and updates from Amank experts'
               }
             </p>
           </div>
-
-          {/* Admin Actions */}
-          <div className="flex justify-center">
-            <Button asChild className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold">
-              <Link href="/blog/admin">
-                <Plus className="w-5 h-5 ml-2 rtl:ml-0 rtl:mr-2" />
-                {t('createPost')}
-              </Link>
-            </Button>
-          </div>
         </div>
       </section>
 
       {/* Featured Article */}
-      <section className="py-12 bg-white">
+      <section className="py-12 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               {isRTL ? 'المقال المميز' : 'Featured Article'}
             </h2>
           </div>
           
-          <Card className="bg-white shadow-xl border-0 overflow-hidden">
+          <Card className="bg-white dark:bg-gray-800 shadow-xl border-0 overflow-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-2">
               <div className="aspect-video lg:aspect-square">
                 <img 
                   src={featuredArticle.image} 
                   alt={featuredArticle.title}
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
               <CardContent className="p-8 flex flex-col justify-center">
@@ -204,22 +193,22 @@ export default function BlogPage() {
                   <Badge variant="secondary" className="mr-3 rtl:mr-0 rtl:ml-3">
                     {featuredArticle.categoryName}
                   </Badge>
-                  <div className="flex items-center text-sm text-gray-500">
+                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                     <Clock className="w-4 h-4 mr-1 rtl:mr-0 rtl:ml-1" />
                     {featuredArticle.readTime}
                   </div>
                 </div>
                 
-                <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 leading-tight">
+                <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
                   {featuredArticle.title}
                 </h3>
                 
-                <p className="text-gray-600 leading-relaxed mb-6">
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
                   {featuredArticle.excerpt}
                 </p>
                 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center text-sm text-gray-500">
+                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                     <User className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
                     <span className="mr-4 rtl:mr-0 rtl:ml-4">{featuredArticle.author}</span>
                     <Calendar className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
@@ -240,7 +229,7 @@ export default function BlogPage() {
       </section>
 
       {/* Search and Filter */}
-      <section className="py-8 bg-gray-50">
+      <section className="py-8 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             <div className="flex-1 max-w-md">
@@ -251,7 +240,7 @@ export default function BlogPage() {
                   placeholder={isRTL ? 'البحث في المقالات...' : 'Search articles...'}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 rtl:pl-4 rtl:pr-10"
+                  className="pl-10 rtl:pl-4 rtl:pr-10 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>
             </div>
@@ -274,44 +263,45 @@ export default function BlogPage() {
       </section>
 
       {/* Articles Grid */}
-      <section className="py-12 bg-gray-50">
+      <section className="py-12 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">{t('latestArticles')}</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('latestArticles')}</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredArticles.slice(1).map((article) => (
-              <Card key={article.id} className="bg-white shadow-lg border-0 hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+              <Card key={article.id} className="bg-white dark:bg-gray-700 shadow-lg border-0 hover:shadow-xl transition-shadow duration-300 overflow-hidden">
                 <div className="aspect-video">
                   <img 
                     src={article.image} 
                     alt={article.title}
                     className="w-full h-full object-cover"
+                    loading="lazy"
                   />
                 </div>
                 
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between mb-3">
                     <Badge variant="secondary">{article.categoryName}</Badge>
-                    <div className="flex items-center text-xs text-gray-500">
+                    <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                       <Clock className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
                       {article.readTime}
                     </div>
                   </div>
                   
-                  <h3 className="text-lg font-bold text-gray-900 leading-tight line-clamp-2">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight line-clamp-2">
                     {article.title}
                   </h3>
                 </CardHeader>
                 
                 <CardContent className="pt-0">
-                  <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-3">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4 line-clamp-3">
                     {article.excerpt}
                   </p>
                   
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center text-xs text-gray-500">
+                    <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                       <User className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
                       <span className="mr-3 rtl:mr-0 rtl:ml-3">{article.author}</span>
                       <Calendar className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
@@ -333,10 +323,10 @@ export default function BlogPage() {
           {filteredArticles.length === 0 && (
             <div className="text-center py-12">
               <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 {isRTL ? 'لا توجد مقالات' : 'No Articles Found'}
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 {isRTL 
                   ? 'لم يتم العثور على مقالات تطابق البحث'
                   : 'No articles found matching your search criteria'

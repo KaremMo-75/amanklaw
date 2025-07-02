@@ -60,6 +60,11 @@ const config: Config = {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))',
         },
+        // Theme colors
+        'theme-primary': 'var(--color-primary)',
+        'theme-secondary': 'var(--color-secondary)',
+        'theme-background': 'var(--color-background)',
+        'theme-text': 'var(--color-text)',
       },
       keyframes: {
         'accordion-down': {
@@ -78,13 +83,70 @@ const config: Config = {
             height: '0',
           },
         },
+        fadeIn: {
+          from: {
+            opacity: '0',
+            transform: 'translateY(20px)',
+          },
+          to: {
+            opacity: '1',
+            transform: 'translateY(0)',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'fade-in': 'fadeIn 0.6s ease-out',
+      },
+      fontFamily: {
+        sans: ['var(--font-inter)', 'var(--font-arabic)', 'system-ui', 'sans-serif'],
+        arabic: ['var(--font-arabic)', 'system-ui', 'sans-serif'],
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    // Custom plugin for performance optimizations
+    function({ addUtilities }: any) {
+      const newUtilities = {
+        '.will-change-transform': {
+          'will-change': 'transform',
+        },
+        '.will-change-opacity': {
+          'will-change': 'opacity',
+        },
+        '.gpu-accelerated': {
+          'transform': 'translateZ(0)',
+          'backface-visibility': 'hidden',
+          'perspective': '1000px',
+        },
+        '.smooth-scroll': {
+          'scroll-behavior': 'smooth',
+        },
+      };
+      addUtilities(newUtilities);
+    },
+  ],
+  // Purge unused styles for better performance
+  purge: {
+    enabled: process.env.NODE_ENV === 'production',
+    content: [
+      './pages/**/*.{js,ts,jsx,tsx}',
+      './components/**/*.{js,ts,jsx,tsx}',
+      './app/**/*.{js,ts,jsx,tsx}',
+    ],
+    options: {
+      safelist: [
+        'dark',
+        'rtl',
+        'ltr',
+        /^bg-theme-/,
+        /^text-theme-/,
+        /^border-theme-/,
+      ],
+    },
+  },
 };
+
 export default config;

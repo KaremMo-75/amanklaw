@@ -8,6 +8,12 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+  
+  /* Custom theme colors */
+  --color-primary: #1e40af;
+  --color-secondary: #eab308;
+  --color-background: #ffffff;
+  --color-text: #1f2937;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -81,6 +87,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-inter), var(--font-arabic), system-ui, sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
   
   /* RTL Support */
@@ -112,7 +119,7 @@
     overflow: hidden;
   }
 
-  /* Smooth transitions for language switching */
+  /* Smooth transitions for language switching and theme changes */
   html {
     transition: direction 0.1s ease;
   }
@@ -124,6 +131,31 @@
   select:focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
+  }
+
+  /* Theme color utilities */
+  .bg-theme-primary {
+    background-color: var(--color-primary);
+  }
+  
+  .bg-theme-secondary {
+    background-color: var(--color-secondary);
+  }
+  
+  .bg-theme-background {
+    background-color: var(--color-background);
+  }
+  
+  .text-theme-primary {
+    color: var(--color-primary);
+  }
+  
+  .text-theme-secondary {
+    color: var(--color-secondary);
+  }
+  
+  .text-theme-text {
+    color: var(--color-text);
   }
 }
 
@@ -181,4 +213,45 @@ html {
 @keyframes spin {
   0% { transform: translate(-50%, -50%) rotate(0deg); }
   100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Dark mode transitions */
+.dark-transition {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Image optimization */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.lazy-image {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.lazy-image.loaded {
+  opacity: 1;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
