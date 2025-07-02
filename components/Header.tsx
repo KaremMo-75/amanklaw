@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Scale, Menu, X, Globe } from 'lucide-react';
@@ -9,6 +9,15 @@ import { Button } from '@/components/ui/button';
 export default function Header() {
   const { language, setLanguage, isRTL, t } = useLanguage();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [logo, setLogo] = useState<string>('');
+
+  useEffect(() => {
+    // Load logo from localStorage
+    const siteContent = JSON.parse(localStorage.getItem('siteContent') || '{}');
+    if (siteContent.logo) {
+      setLogo(siteContent.logo);
+    }
+  }, []);
 
   const navItems = [
     { href: '/', label: t('home') },
@@ -28,7 +37,11 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 rtl:space-x-reverse">
-            <Scale className="h-8 w-8 text-blue-800" />
+            {logo ? (
+              <img src={logo} alt="Logo" className="h-8 w-auto" />
+            ) : (
+              <Scale className="h-8 w-8 text-blue-800" />
+            )}
             <div className="text-xl font-bold text-blue-800">
               {isRTL ? 'أمانك' : 'Amank'}
             </div>

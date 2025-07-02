@@ -7,13 +7,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Scale, Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Scale, User, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
+
+interface AdminUser {
+  username: string;
+  password: string;
+  role: 'admin' | 'superadmin';
+  createdAt: string;
+}
 
 export default function AdminLoginPage() {
   const { isRTL, t } = useLanguage();
   const router = useRouter();
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -22,9 +29,21 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     // Check if already logged in
-    const isAdmin = localStorage.getItem('isAdmin');
-    if (isAdmin === 'true') {
+    const loggedInUser = localStorage.getItem('loggedInUser');
+    if (loggedInUser) {
       router.push('/admin/dashboard');
+    }
+
+    // Initialize default superadmin if no admin users exist
+    const adminUsers = JSON.parse(localStorage.getItem('adminUsers') || '[]');
+    if (adminUsers.length === 0) {
+      const defaultSuperAdmin: AdminUser = {
+        username: 'superadmin',
+        password: 'admin123',
+        role: 'superadmin',
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem('adminUsers', JSON.stringify([defaultSuperAdmin]));
     }
   }, [router]);
 
@@ -38,22 +57,31 @@ export default function AdminLoginPage() {
     setIsLoading(true);
     setError('');
 
+    // Validate empty fields
+    if (!formData.username.trim() || !formData.password.trim()) {
+      setError(isRTL ? 'يرجى ملء جميع الحقول' : 'Please fill in all fields');
+      setIsLoading(false);
+      return;
+    }
+
     // Simulate loading delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Get saved credentials or use defaults
-    const savedCredentials = localStorage.getItem('adminCredentials');
-    const credentials = savedCredentials 
-      ? JSON.parse(savedCredentials)
-      : { email: 'admin@example.com', password: 'admin123' };
+    // Get admin users from localStorage
+    const adminUsers: AdminUser[] = JSON.parse(localStorage.getItem('adminUsers') || '[]');
+    
+    // Find matching user
+    const user = adminUsers.find(u => 
+      u.username === formData.username && u.password === formData.password
+    );
 
-    // Check credentials
-    if (formData.email === credentials.email && formData.password === credentials.password) {
-      localStorage.setItem('isAdmin', 'true');
+    if (user) {
+      // Save logged in user
+      localStorage.setItem('loggedInUser', JSON.stringify(user));
       localStorage.setItem('adminLoginTime', new Date().toISOString());
       router.push('/admin/dashboard');
     } else {
-      setError(isRTL ? 'بيانات الدخول غير صحيحة' : 'Invalid credentials');
+      setError(isRTL ? 'اسم المستخدم أو كلمة المرور غير صحيحة' : 'Invalid username or password');
     }
     
     setIsLoading(false);
@@ -91,20 +119,19 @@ export default function AdminLoginPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                {isRTL ? 'البريد الإلكتروني' : 'Email Address'}
+              <Label htmlFor="username" className="text-sm font-medium text-gray-700">
+                {isRTL ? 'اسم المستخدم' : 'Username'}
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 rtl:left-auto rtl:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <User className="absolute left-3 rtl:left-auto rtl:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  id="username"
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => handleInputChange('username', e.target.value)}
                   required
                   className="pl-10 rtl:pl-4 rtl:pr-10 h-12"
-                  placeholder={isRTL ? 'admin@example.com' : 'admin@example.com'}
-                  dir="ltr"
+                  placeholder={isRTL ? 'أدخل اسم المستخدم' : 'Enter your username'}
                 />
               </div>
             </div>
@@ -122,7 +149,7 @@ export default function AdminLoginPage() {
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   required
                   className="pl-10 pr-10 rtl:pl-10 rtl:pr-10 h-12"
-                  placeholder={isRTL ? 'admin123' : 'admin123'}
+                  placeholder={isRTL ? 'أدخل كلمة المرور' : 'Enter your password'}
                 />
                 <button
                   type="button"
@@ -155,8 +182,9 @@ export default function AdminLoginPage() {
               {isRTL ? 'بيانات الدخول الافتراضية:' : 'Default Credentials:'}
             </p>
             <div className="text-xs text-gray-700 space-y-1">
-              <div><strong>Email:</strong> admin@example.com</div>
+              <div><strong>Username:</strong> superadmin</div>
               <div><strong>Password:</strong> admin123</div>
+              <div><strong>Role:</strong> Super Admin</div>
             </div>
           </div>
         </CardContent>

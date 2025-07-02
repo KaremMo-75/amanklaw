@@ -35,20 +35,31 @@ interface Article {
   views: number;
 }
 
+interface AdminUser {
+  username: string;
+  password: string;
+  role: 'admin' | 'superadmin';
+  createdAt: string;
+}
+
 export default function ManageArticlesPage() {
   const { isRTL, t } = useLanguage();
   const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
     // Check admin authentication
-    const isAdmin = localStorage.getItem('isAdmin');
-    if (isAdmin !== 'true') {
+    const loggedInUser = localStorage.getItem('loggedInUser');
+    if (!loggedInUser) {
       router.push('/admin-login');
       return;
     }
+
+    const user = JSON.parse(loggedInUser);
+    setCurrentUser(user);
 
     // Load articles
     loadArticles();
@@ -91,6 +102,12 @@ export default function ManageArticlesPage() {
   });
 
   const handleDelete = (articleId: string) => {
+    // Only superadmin can delete articles
+    if (currentUser?.role !== 'superadmin') {
+      alert(isRTL ? 'ليس لديك صلاحية لحذف المقالات' : 'You do not have permission to delete articles');
+      return;
+    }
+
     if (confirm(isRTL ? 'هل أنت متأكد من حذف هذا المقال؟' : 'Are you sure you want to delete this article?')) {
       const updatedArticles = articles.filter(article => article.id !== articleId);
       setArticles(updatedArticles);
@@ -241,14 +258,16 @@ export default function ManageArticlesPage() {
                       <Edit className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
                       {isRTL ? 'تحرير' : 'Edit'}
                     </Button>
-                    <Button 
-                      onClick={() => handleDelete(article.id)}
-                      size="sm" 
-                      variant="outline" 
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                    {currentUser?.role === 'superadmin' && (
+                      <Button 
+                        onClick={() => handleDelete(article.id)}
+                        size="sm" 
+                        variant="outline" 
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

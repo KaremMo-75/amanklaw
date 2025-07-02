@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,17 @@ import {
   CheckCircle
 } from 'lucide-react';
 
+interface ContactSubmission {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  subject: string;
+  message: string;
+  submittedAt: string;
+  isRead: boolean;
+}
+
 export default function ContactPage() {
   const { isRTL, t } = useLanguage();
   const [formData, setFormData] = useState({
@@ -29,6 +40,15 @@ export default function ContactPage() {
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contactInfo, setContactInfo] = useState<any>(null);
+
+  useEffect(() => {
+    // Load contact info from localStorage
+    const savedContactInfo = localStorage.getItem('contactInfo');
+    if (savedContactInfo) {
+      setContactInfo(JSON.parse(savedContactInfo));
+    }
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -38,10 +58,26 @@ export default function ContactPage() {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate form submission
+    // Create submission object
+    const submission: ContactSubmission = {
+      id: Date.now().toString(),
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      subject: formData.subject,
+      message: formData.message,
+      submittedAt: new Date().toISOString(),
+      isRead: false
+    };
+
+    // Save to localStorage
+    const existingSubmissions = JSON.parse(localStorage.getItem('contactSubmissions') || '[]');
+    existingSubmissions.push(submission);
+    localStorage.setItem('contactSubmissions', JSON.stringify(existingSubmissions));
+    
+    // Simulate form submission delay
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    console.log('Form submitted:', formData);
     alert(isRTL ? 'تم إرسال رسالتك بنجاح! سنتواصل معك قريباً.' : 'Your message has been sent successfully! We will contact you soon.');
     
     // Reset form
@@ -56,24 +92,24 @@ export default function ContactPage() {
     setIsSubmitting(false);
   };
 
-  const contactInfo = [
+  const contactInfoData = [
     {
       icon: MapPin,
       title: isRTL ? 'العنوان' : 'Address',
       details: [
-        isRTL ? 'شارع الملك فهد، الرياض' : 'King Fahd Road, Riyadh',
+        contactInfo?.address || (isRTL ? 'شارع الملك فهد، الرياض' : 'King Fahd Road, Riyadh'),
         isRTL ? 'المملكة العربية السعودية، 12345' : 'Saudi Arabia, 12345'
       ]
     },
     {
       icon: Phone,
       title: isRTL ? 'الهاتف' : 'Phone',
-      details: ['+966 11 123 4567', '+966 50 123 4567']
+      details: [contactInfo?.phone || '+966 11 123 4567']
     },
     {
       icon: Mail,
       title: isRTL ? 'البريد الإلكتروني' : 'Email',
-      details: ['info@amank-law.com', 'consultation@amank-law.com']
+      details: [contactInfo?.email || 'info@amank-law.com']
     },
     {
       icon: Clock,
@@ -254,7 +290,7 @@ export default function ContactPage() {
                 </p>
               </div>
 
-              {contactInfo.map((info, index) => (
+              {contactInfoData.map((info, index) => (
                 <Card key={index} className="bg-white shadow-lg border-0">
                   <CardContent className="p-6">
                     <div className="flex items-start">
