@@ -1,27 +1,29 @@
-{
-  "compilerOptions": {
-    "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./*"]
-    }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
-}
+type Feature = {
+  id: number;
+  title: string;
+  description: string;
+};
+
+const features: Feature[] = [
+  { id: 1, title: "Feature 1", description: "Description 1" },
+  { id: 2, title: "Feature 2", description: "Description 2" },
+  { id: 3, title: "Feature 3", description: "Description 3" },
+];
+
+<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+  <Suspense fallback={<LoadingCard />}>
+    {features.map((feature, index) => (
+      <Card
+        key={index}
+        className="bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 border-0"
+      >
+        <CardContent className="p-8 text-center">
+          <div>
+            <h3>{feature.title}</h3>
+            <p>{feature.description}</p>
+          </div>
+        </CardContent>
+      </Card>
+    ))}
+  </Suspense>
+</div>
