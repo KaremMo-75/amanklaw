@@ -1,29 +1,38 @@
+import React from "react";
+import { Suspense } from "react";
+import { Card, CardContent } from "./path-to-your-components"; // عدّل حسب مشروعك
+
+// تعريف نوع العنصر Feature
 type Feature = {
   id: number;
   title: string;
   description: string;
 };
 
+// تعريف مصفوفة features (مثل JSON لكن داخل كود TypeScript)
 const features: Feature[] = [
   { id: 1, title: "Feature 1", description: "Description 1" },
   { id: 2, title: "Feature 2", description: "Description 2" },
   { id: 3, title: "Feature 3", description: "Description 3" },
 ];
 
-<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-  <Suspense fallback={<LoadingCard />}>
-    {features.map((feature, index) => (
-      <Card
-        key={index}
-        className="bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 border-0"
-      >
-        <CardContent className="p-8 text-center">
-          <div>
-            <h3>{feature.title}</h3>
-            <p>{feature.description}</p>
-          </div>
-        </CardContent>
-      </Card>
-    ))}
-  </Suspense>
-</div>
+// مكون React يعرض المصفوفة
+export default function FeaturesGrid() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <Suspense fallback={<LoadingCard />}>
+        {features.map((feature) => (
+          <Card
+            key={feature.id}
+            className="bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 border-0"
+          >
+            <CardContent className="p-8 text-center">
+              <h3>{feature.title}</h3>
+              <p>{feature.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </Suspense>
+    </div>
+  );
+}
