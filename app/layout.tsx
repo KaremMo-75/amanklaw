@@ -16,7 +16,7 @@ const notoSansArabic = Noto_Sans_Arabic({
   subsets: ['arabic'], 
   variable: '--font-arabic',
   display: 'swap',
-  preload: true
+  preload: false
 });
 
 export const metadata: Metadata = {
