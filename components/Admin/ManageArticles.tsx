@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { 
   Plus, 
   Edit, 
@@ -22,8 +22,23 @@ import {
   Image as ImageIcon,
   CheckCircle,
   AlertCircle,
-  Eye
+  Eye,
+  EyeOff,
+  Search,
+  Filter
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import ReactQuill to avoid SSR issues
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+import 'react-quill/dist/quill.snow.css';
+
+interface Lawyer {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  image: string;
+}
 
 interface Article {
   id: string;
@@ -31,16 +46,18 @@ interface Article {
   titleEn: string;
   contentAr: string;
   contentEn: string;
-  excerptAr: string;
-  excerptEn: string;
-  author: string;
+  isActive: boolean;
+  slug: string;
+  metaTitle: string;
+  metaDescription: string;
+  metaKeywords: string;
+  authorId: string;
+  authorName: string;
+  authorImage: string;
   date: string;
   category: string;
-  categoryNameAr: string;
-  categoryNameEn: string;
-  readTime: string;
-  image: string;
   tags: string[];
+  image: string;
   views: number;
   createdAt: string;
   updatedAt: string;
@@ -49,27 +66,59 @@ interface Article {
 export default function ManageArticles() {
   const { isRTL, t } = useLanguage();
   const [articles, setArticles] = useState<Article[]>([]);
+  const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [formData, setFormData] = useState({
     titleAr: '',
     titleEn: '',
     contentAr: '',
     contentEn: '',
-    excerptAr: '',
-    excerptEn: '',
-    author: '',
-    date: '',
+    isActive: true,
+    slug: '',
+    metaTitle: '',
+    metaDescription: '',
+    metaKeywords: '',
+    authorId: '',
+    date: new Date().toISOString().split('T')[0],
     category: '',
-    readTime: '',
-    image: '',
-    tags: ''
+    tags: '',
+    image: ''
   });
   const [success, setSuccess] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
 
+  // Quill editor configurations
+  const quillModules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'script': 'sub'}, { 'script': 'super' }],
+      [{ 'indent': '-1'}, { 'indent': '+1' }],
+      [{ 'direction': 'rtl' }],
+      [{ 'size': ['small', false, 'large', 'huge'] }],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'align': [] }],
+      ['link', 'image', 'video'],
+      ['clean']
+    ],
+  };
+
+  const quillFormats = [
+    'header', 'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet', 'script', 'indent', 'direction',
+    'size', 'color', 'background', 'align',
+    'link', 'image', 'video'
+  ];
+
   useEffect(() => {
     loadArticles();
+    loadLawyers();
   }, []);
 
   const loadArticles = () => {
@@ -77,14 +126,27 @@ export default function ManageArticles() {
     setArticles(savedArticles);
   };
 
+  const loadLawyers = () => {
+    const savedLawyers = JSON.parse(localStorage.getItem('lawyers') || '[]');
+    setLawyers(savedLawyers);
+  };
+
   const categories = [
-    { id: 'civil', nameAr: 'القانون المدني', nameEn: 'Civil Law' },
-    { id: 'commercial', nameAr: 'القانون التجاري', nameEn: 'Commercial Law' },
-    { id: 'family', nameAr: 'قانون الأسرة', nameEn: 'Family Law' },
-    { id: 'criminal', nameAr: 'القانون الجنائي', nameEn: 'Criminal Law' },
-    { id: 'real-estate', nameAr: 'العقارات', nameEn: 'Real Estate' },
-    { id: 'labor', nameAr: 'قانون العمل', nameEn: 'Labor Law' },
+    { id: 'civil', name: isRTL ? 'القانون المدني' : 'Civil Law' },
+    { id: 'commercial', name: isRTL ? 'القانون التجاري' : 'Commercial Law' },
+    { id: 'family', name: isRTL ? 'قانون الأسرة' : 'Family Law' },
+    { id: 'criminal', name: isRTL ? 'القانون الجنائي' : 'Criminal Law' },
+    { id: 'real-estate', name: isRTL ? 'العقارات' : 'Real Estate' },
+    { id: 'labor', name: isRTL ? 'قانون العمل' : 'Labor Law' },
   ];
+
+  const generateSlug = (title: string) => {
+    return title
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .trim();
+  };
 
   const resetForm = () => {
     setFormData({
@@ -92,17 +154,20 @@ export default function ManageArticles() {
       titleEn: '',
       contentAr: '',
       contentEn: '',
-      excerptAr: '',
-      excerptEn: '',
-      author: '',
-      date: '',
+      isActive: true,
+      slug: '',
+      metaTitle: '',
+      metaDescription: '',
+      metaKeywords: '',
+      authorId: '',
+      date: new Date().toISOString().split('T')[0],
       category: '',
-      readTime: '',
-      image: '',
-      tags: ''
+      tags: '',
+      image: ''
     });
     setEditingArticle(null);
     setShowForm(false);
+    setShowPreview(false);
     setErrors([]);
   };
 
@@ -112,29 +177,14 @@ export default function ManageArticles() {
     if (!formData.titleAr.trim()) {
       newErrors.push(isRTL ? 'العنوان بالعربية مطلوب' : 'Arabic title is required');
     }
-    if (!formData.titleEn.trim()) {
-      newErrors.push(isRTL ? 'العنوان بالإنجليزية مطلوب' : 'English title is required');
-    }
     if (!formData.contentAr.trim()) {
       newErrors.push(isRTL ? 'المحتوى بالعربية مطلوب' : 'Arabic content is required');
     }
-    if (!formData.contentEn.trim()) {
-      newErrors.push(isRTL ? 'المحتوى بالإنجليزية مطلوب' : 'English content is required');
-    }
-    if (!formData.author.trim()) {
-      newErrors.push(isRTL ? 'اسم الكاتب مطلوب' : 'Author name is required');
-    }
-    if (!formData.date.trim()) {
-      newErrors.push(isRTL ? 'تاريخ النشر مطلوب' : 'Publication date is required');
+    if (!formData.authorId.trim()) {
+      newErrors.push(isRTL ? 'يجب اختيار الكاتب' : 'Author selection is required');
     }
     if (!formData.category.trim()) {
       newErrors.push(isRTL ? 'التصنيف مطلوب' : 'Category is required');
-    }
-    if (!formData.readTime.trim()) {
-      newErrors.push(isRTL ? 'وقت القراءة مطلوب' : 'Read time is required');
-    }
-    if (!formData.image.trim()) {
-      newErrors.push(isRTL ? 'رابط الصورة مطلوب' : 'Image URL is required');
     }
 
     setErrors(newErrors);
@@ -146,8 +196,9 @@ export default function ManageArticles() {
     
     if (!validateForm()) return;
 
-    const selectedCategory = categories.find(cat => cat.id === formData.category);
+    const selectedAuthor = lawyers.find(lawyer => lawyer.id === formData.authorId);
     const tagsArray = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+    const slug = formData.slug || generateSlug(formData.titleEn || formData.titleAr);
 
     if (editingArticle) {
       // Update existing article
@@ -156,8 +207,9 @@ export default function ManageArticles() {
           ? { 
               ...article, 
               ...formData,
-              categoryNameAr: selectedCategory?.nameAr || '',
-              categoryNameEn: selectedCategory?.nameEn || '',
+              slug,
+              authorName: isRTL ? selectedAuthor?.nameAr || '' : selectedAuthor?.nameEn || '',
+              authorImage: selectedAuthor?.image || '',
               tags: tagsArray,
               updatedAt: new Date().toISOString()
             }
@@ -171,8 +223,9 @@ export default function ManageArticles() {
       const newArticle: Article = {
         id: Date.now().toString(),
         ...formData,
-        categoryNameAr: selectedCategory?.nameAr || '',
-        categoryNameEn: selectedCategory?.nameEn || '',
+        slug,
+        authorName: isRTL ? selectedAuthor?.nameAr || '' : selectedAuthor?.nameEn || '',
+        authorImage: selectedAuthor?.image || '',
         tags: tagsArray,
         views: 0,
         createdAt: new Date().toISOString(),
@@ -194,14 +247,16 @@ export default function ManageArticles() {
       titleEn: article.titleEn,
       contentAr: article.contentAr,
       contentEn: article.contentEn,
-      excerptAr: article.excerptAr,
-      excerptEn: article.excerptEn,
-      author: article.author,
+      isActive: article.isActive,
+      slug: article.slug,
+      metaTitle: article.metaTitle,
+      metaDescription: article.metaDescription,
+      metaKeywords: article.metaKeywords,
+      authorId: article.authorId,
       date: article.date,
       category: article.category,
-      readTime: article.readTime,
-      image: article.image,
-      tags: article.tags.join(', ')
+      tags: article.tags.join(', '),
+      image: article.image
     });
     setEditingArticle(article);
     setShowForm(true);
@@ -215,6 +270,88 @@ export default function ManageArticles() {
       setSuccess(isRTL ? 'تم حذف المقال بنجاح!' : 'Article deleted successfully!');
       setTimeout(() => setSuccess(''), 3000);
     }
+  };
+
+  const toggleArticleStatus = (id: string) => {
+    const updatedArticles = articles.map(article => 
+      article.id === id 
+        ? { ...article, isActive: !article.isActive, updatedAt: new Date().toISOString() }
+        : article
+    );
+    setArticles(updatedArticles);
+    localStorage.setItem('articles', JSON.stringify(updatedArticles));
+  };
+
+  const filteredArticles = articles.filter(article => {
+    const matchesSearch = 
+      article.titleAr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      article.titleEn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      article.authorName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || article.category === filterCategory;
+    const matchesStatus = filterStatus === 'all' || 
+      (filterStatus === 'active' && article.isActive) ||
+      (filterStatus === 'inactive' && !article.isActive);
+    
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  const PreviewModal = () => {
+    if (!showPreview) return null;
+
+    const selectedAuthor = lawyers.find(lawyer => lawyer.id === formData.authorId);
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="p-6 border-b flex justify-between items-center">
+            <h3 className="text-lg font-bold">
+              {isRTL ? 'معاينة المقال' : 'Article Preview'}
+            </h3>
+            <Button variant="ghost" onClick={() => setShowPreview(false)}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="p-6">
+            {formData.image && (
+              <img 
+                src={formData.image} 
+                alt="Article" 
+                className="w-full h-64 object-cover rounded-lg mb-6"
+              />
+            )}
+            <div className="mb-4">
+              <Badge variant="secondary">{categories.find(c => c.id === formData.category)?.name}</Badge>
+            </div>
+            <h1 className="text-3xl font-bold mb-4" dir={isRTL ? 'rtl' : 'ltr'}>
+              {isRTL ? formData.titleAr : formData.titleEn || formData.titleAr}
+            </h1>
+            <div className="flex items-center mb-6 text-sm text-gray-600">
+              {selectedAuthor && (
+                <>
+                  <img 
+                    src={selectedAuthor.image} 
+                    alt="Author" 
+                    className="w-8 h-8 rounded-full mr-3 rtl:mr-0 rtl:ml-3"
+                  />
+                  <span className="mr-4 rtl:mr-0 rtl:ml-4">
+                    {isRTL ? selectedAuthor.nameAr : selectedAuthor.nameEn}
+                  </span>
+                </>
+              )}
+              <Calendar className="w-4 h-4 mr-1 rtl:mr-0 rtl:ml-1" />
+              <span>{new Date(formData.date).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US')}</span>
+            </div>
+            <div 
+              className="prose max-w-none"
+              dir={isRTL ? 'rtl' : 'ltr'}
+              dangerouslySetInnerHTML={{ 
+                __html: isRTL ? formData.contentAr : formData.contentEn || formData.contentAr 
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -246,6 +383,53 @@ export default function ManageArticles() {
           {isRTL ? 'إضافة مقال' : 'Add Article'}
         </Button>
       </div>
+
+      {/* Search and Filters */}
+      <Card className="bg-white shadow-lg border-0">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex-1 max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 rtl:left-auto rtl:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
+                  type="text"
+                  placeholder={isRTL ? 'البحث في المقالات...' : 'Search articles...'}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 rtl:pl-4 rtl:pr-10"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder={isRTL ? 'التصنيف' : 'Category'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{isRTL ? 'جميع التصنيفات' : 'All Categories'}</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder={isRTL ? 'الحالة' : 'Status'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{isRTL ? 'الكل' : 'All'}</SelectItem>
+                  <SelectItem value="active">{isRTL ? 'نشط' : 'Active'}</SelectItem>
+                  <SelectItem value="inactive">{isRTL ? 'غير نشط' : 'Inactive'}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Add/Edit Form */}
       {showForm && (
@@ -279,95 +463,96 @@ export default function ManageArticles() {
                 </div>
               )}
 
-              {/* Title Fields */}
+              {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Label htmlFor="titleAr">{isRTL ? 'العنوان بالعربية' : 'Title in Arabic'}</Label>
+                  <Label htmlFor="titleAr">{isRTL ? 'العنوان بالعربية *' : 'Arabic Title *'}</Label>
                   <Input
                     id="titleAr"
                     value={formData.titleAr}
-                    onChange={(e) => setFormData(prev => ({ ...prev, titleAr: e.target.value }))}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, titleAr: e.target.value }));
+                      if (!formData.slug && !editingArticle) {
+                        setFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }));
+                      }
+                    }}
                     className="mt-2 text-right"
                     dir="rtl"
                     placeholder={isRTL ? 'أدخل عنوان المقال بالعربية' : 'Enter article title in Arabic'}
+                    required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="titleEn">{isRTL ? 'العنوان بالإنجليزية' : 'Title in English'}</Label>
+                  <Label htmlFor="titleEn">{isRTL ? 'العنوان بالإنجليزية' : 'English Title'}</Label>
                   <Input
                     id="titleEn"
                     value={formData.titleEn}
-                    onChange={(e) => setFormData(prev => ({ ...prev, titleEn: e.target.value }))}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, titleEn: e.target.value }));
+                      if (!formData.slug && !editingArticle) {
+                        setFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }));
+                      }
+                    }}
                     className="mt-2"
                     placeholder={isRTL ? 'أدخل عنوان المقال بالإنجليزية' : 'Enter article title in English'}
                   />
                 </div>
               </div>
 
-              {/* Excerpt Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Content Fields with Rich Text Editor */}
+              <div className="space-y-6">
                 <div>
-                  <Label htmlFor="excerptAr">{isRTL ? 'الملخص بالعربية' : 'Excerpt in Arabic'}</Label>
-                  <Textarea
-                    id="excerptAr"
-                    value={formData.excerptAr}
-                    onChange={(e) => setFormData(prev => ({ ...prev, excerptAr: e.target.value }))}
-                    className="mt-2 min-h-20 text-right"
-                    dir="rtl"
-                    placeholder={isRTL ? 'ملخص قصير للمقال بالعربية' : 'Short excerpt in Arabic'}
-                  />
+                  <Label>{isRTL ? 'المحتوى بالعربية *' : 'Arabic Content *'}</Label>
+                  <div className="mt-2" dir="rtl">
+                    <ReactQuill
+                      value={formData.contentAr}
+                      onChange={(value) => setFormData(prev => ({ ...prev, contentAr: value }))}
+                      modules={quillModules}
+                      formats={quillFormats}
+                      placeholder={isRTL ? 'اكتب محتوى المقال بالعربية...' : 'Write article content in Arabic...'}
+                      style={{ direction: 'rtl', textAlign: 'right' }}
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="excerptEn">{isRTL ? 'الملخص بالإنجليزية' : 'Excerpt in English'}</Label>
-                  <Textarea
-                    id="excerptEn"
-                    value={formData.excerptEn}
-                    onChange={(e) => setFormData(prev => ({ ...prev, excerptEn: e.target.value }))}
-                    className="mt-2 min-h-20"
-                    placeholder={isRTL ? 'ملخص قصير للمقال بالإنجليزية' : 'Short excerpt in English'}
-                  />
-                </div>
-              </div>
-
-              {/* Content Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label htmlFor="contentAr">{isRTL ? 'المحتوى بالعربية' : 'Content in Arabic'}</Label>
-                  <Textarea
-                    id="contentAr"
-                    value={formData.contentAr}
-                    onChange={(e) => setFormData(prev => ({ ...prev, contentAr: e.target.value }))}
-                    className="mt-2 min-h-48 text-right"
-                    dir="rtl"
-                    placeholder={isRTL ? 'محتوى المقال الكامل بالعربية (يمكن استخدام Markdown)' : 'Full article content in Arabic (Markdown supported)'}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="contentEn">{isRTL ? 'المحتوى بالإنجليزية' : 'Content in English'}</Label>
-                  <Textarea
-                    id="contentEn"
-                    value={formData.contentEn}
-                    onChange={(e) => setFormData(prev => ({ ...prev, contentEn: e.target.value }))}
-                    className="mt-2 min-h-48"
-                    placeholder={isRTL ? 'محتوى المقال الكامل بالإنجليزية (يمكن استخدام Markdown)' : 'Full article content in English (Markdown supported)'}
-                  />
+                  <Label>{isRTL ? 'المحتوى بالإنجليزية' : 'English Content'}</Label>
+                  <div className="mt-2">
+                    <ReactQuill
+                      value={formData.contentEn}
+                      onChange={(value) => setFormData(prev => ({ ...prev, contentEn: value }))}
+                      modules={quillModules}
+                      formats={quillFormats}
+                      placeholder={isRTL ? 'اكتب محتوى المقال بالإنجليزية...' : 'Write article content in English...'}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Meta Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Article Settings */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="author">{isRTL ? 'الكاتب' : 'Author'}</Label>
-                  <Input
-                    id="author"
-                    value={formData.author}
-                    onChange={(e) => setFormData(prev => ({ ...prev, author: e.target.value }))}
-                    className="mt-2"
-                    placeholder={isRTL ? 'اسم الكاتب' : 'Author name'}
-                  />
+                  <Label htmlFor="author">{isRTL ? 'الكاتب *' : 'Author *'}</Label>
+                  <Select value={formData.authorId} onValueChange={(value) => setFormData(prev => ({ ...prev, authorId: value }))}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder={isRTL ? 'اختر الكاتب' : 'Select author'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {lawyers.map((lawyer) => (
+                        <SelectItem key={lawyer.id} value={lawyer.id}>
+                          <div className="flex items-center">
+                            <img 
+                              src={lawyer.image} 
+                              alt="Author" 
+                              className="w-6 h-6 rounded-full mr-2 rtl:mr-0 rtl:ml-2"
+                            />
+                            {isRTL ? lawyer.nameAr : lawyer.nameEn}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -382,7 +567,7 @@ export default function ManageArticles() {
                 </div>
 
                 <div>
-                  <Label htmlFor="category">{isRTL ? 'التصنيف' : 'Category'}</Label>
+                  <Label htmlFor="category">{isRTL ? 'التصنيف *' : 'Category *'}</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
                     <SelectTrigger className="mt-2">
                       <SelectValue placeholder={isRTL ? 'اختر التصنيف' : 'Select category'} />
@@ -390,26 +575,69 @@ export default function ManageArticles() {
                     <SelectContent>
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
-                          {isRTL ? category.nameAr : category.nameEn}
+                          {category.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* SEO Fields */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {isRTL ? 'إعدادات SEO' : 'SEO Settings'}
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="slug">{isRTL ? 'الرابط المختصر' : 'Slug'}</Label>
+                    <Input
+                      id="slug"
+                      value={formData.slug}
+                      onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+                      className="mt-2"
+                      placeholder="article-slug"
+                      dir="ltr"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="metaTitle">{isRTL ? 'عنوان SEO' : 'Meta Title'}</Label>
+                    <Input
+                      id="metaTitle"
+                      value={formData.metaTitle}
+                      onChange={(e) => setFormData(prev => ({ ...prev, metaTitle: e.target.value }))}
+                      className="mt-2"
+                      placeholder={isRTL ? 'عنوان للمحركات البحث' : 'SEO title for search engines'}
+                    />
+                  </div>
+                </div>
 
                 <div>
-                  <Label htmlFor="readTime">{isRTL ? 'وقت القراءة' : 'Read Time'}</Label>
+                  <Label htmlFor="metaDescription">{isRTL ? 'وصف SEO' : 'Meta Description'}</Label>
                   <Input
-                    id="readTime"
-                    value={formData.readTime}
-                    onChange={(e) => setFormData(prev => ({ ...prev, readTime: e.target.value }))}
+                    id="metaDescription"
+                    value={formData.metaDescription}
+                    onChange={(e) => setFormData(prev => ({ ...prev, metaDescription: e.target.value }))}
                     className="mt-2"
-                    placeholder={isRTL ? '5 دقائق' : '5 min read'}
+                    placeholder={isRTL ? 'وصف مختصر للمقال لمحركات البحث' : 'Brief description for search engines'}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="metaKeywords">{isRTL ? 'كلمات مفتاحية SEO' : 'Meta Keywords'}</Label>
+                  <Input
+                    id="metaKeywords"
+                    value={formData.metaKeywords}
+                    onChange={(e) => setFormData(prev => ({ ...prev, metaKeywords: e.target.value }))}
+                    className="mt-2"
+                    placeholder={isRTL ? 'كلمة1، كلمة2، كلمة3' : 'keyword1, keyword2, keyword3'}
                   />
                 </div>
               </div>
 
-              {/* Image and Tags */}
+              {/* Additional Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="image">{isRTL ? 'رابط الصورة' : 'Image URL'}</Label>
@@ -432,12 +660,24 @@ export default function ManageArticles() {
                     className="mt-2"
                     placeholder={isRTL ? 'كلمة1، كلمة2، كلمة3' : 'tag1, tag2, tag3'}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {isRTL ? 'افصل بين الكلمات بفاصلة' : 'Separate tags with commas'}
-                  </p>
                 </div>
               </div>
 
+              {/* Article Visibility */}
+              <div className="flex items-center space-x-3 rtl:space-x-reverse">
+                <Switch
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+                />
+                <Label className="text-sm font-medium">
+                  {formData.isActive 
+                    ? (isRTL ? 'المقال مرئي للجمهور' : 'Article is visible to public')
+                    : (isRTL ? 'المقال مخفي عن الجمهور' : 'Article is hidden from public')
+                  }
+                </Label>
+              </div>
+
+              {/* Form Actions */}
               <div className="flex space-x-4 rtl:space-x-reverse">
                 <Button type="submit" className="bg-green-600 hover:bg-green-700">
                   <Save className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
@@ -446,6 +686,17 @@ export default function ManageArticles() {
                     : (isRTL ? 'إضافة المقال' : 'Add Article')
                   }
                 </Button>
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setShowPreview(true)}
+                  disabled={!formData.titleAr || !formData.contentAr}
+                >
+                  <Eye className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
+                  {isRTL ? 'معاينة' : 'Preview'}
+                </Button>
+                
                 <Button type="button" variant="outline" onClick={resetForm}>
                   <X className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
                   {isRTL ? 'إلغاء' : 'Cancel'}
@@ -456,92 +707,146 @@ export default function ManageArticles() {
         </Card>
       )}
 
-      {/* Articles Table */}
+      {/* Articles List */}
       <Card className="bg-white shadow-lg border-0">
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <FileText className="w-5 h-5 mr-2 rtl:mr-0 rtl:ml-2" />
-            {isRTL ? 'قائمة المقالات' : 'Articles List'}
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center">
+              <FileText className="w-5 h-5 mr-2 rtl:mr-0 rtl:ml-2" />
+              {isRTL ? 'قائمة المقالات' : 'Articles List'}
+            </div>
+            <Badge variant="secondary">
+              {filteredArticles.length} {isRTL ? 'مقال' : 'articles'}
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {articles.length === 0 ? (
+          {filteredArticles.length === 0 ? (
             <div className="text-center py-8">
               <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {isRTL ? 'لا توجد مقالات' : 'No Articles Found'}
+                {searchTerm || filterCategory !== 'all' || filterStatus !== 'all'
+                  ? (isRTL ? 'لا توجد مقالات مطابقة' : 'No matching articles')
+                  : (isRTL ? 'لا توجد مقالات' : 'No articles found')
+                }
               </h3>
               <p className="text-gray-600">
-                {isRTL ? 'ابدأ بإضافة مقال جديد' : 'Start by adding a new article'}
+                {searchTerm || filterCategory !== 'all' || filterStatus !== 'all'
+                  ? (isRTL ? 'جرب تغيير معايير البحث' : 'Try changing your search criteria')
+                  : (isRTL ? 'ابدأ بإضافة مقال جديد' : 'Start by adding a new article')
+                }
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {articles.map((article) => (
-                <Card key={article.id} className="border border-gray-200 hover:shadow-md transition-shadow">
-                  <div className="aspect-video">
-                    <img 
-                      src={article.image} 
-                      alt={isRTL ? article.titleAr : article.titleEn}
-                      className="w-full h-full object-cover rounded-t-lg"
-                    />
-                  </div>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <Badge variant="secondary" className="text-xs">
-                        {isRTL ? article.categoryNameAr : article.categoryNameEn}
-                      </Badge>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Eye className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
-                        {article.views}
-                      </div>
-                    </div>
-                    
-                    <h3 className="font-bold text-gray-900 text-lg mb-2 line-clamp-2">
-                      {isRTL ? article.titleAr : article.titleEn}
-                    </h3>
-                    
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                      {isRTL ? article.excerptAr : article.excerptEn}
-                    </p>
-                    
-                    <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                      <div className="flex items-center">
-                        <User className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
-                        <span className="mr-2 rtl:mr-0 rtl:ml-2">{article.author}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Calendar className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left rtl:text-right py-3 px-4 font-semibold">
+                      {isRTL ? 'العنوان' : 'Title'}
+                    </th>
+                    <th className="text-left rtl:text-right py-3 px-4 font-semibold">
+                      {isRTL ? 'الكاتب' : 'Author'}
+                    </th>
+                    <th className="text-left rtl:text-right py-3 px-4 font-semibold">
+                      {isRTL ? 'التصنيف' : 'Category'}
+                    </th>
+                    <th className="text-left rtl:text-right py-3 px-4 font-semibold">
+                      {isRTL ? 'التاريخ' : 'Date'}
+                    </th>
+                    <th className="text-left rtl:text-right py-3 px-4 font-semibold">
+                      {isRTL ? 'الحالة' : 'Status'}
+                    </th>
+                    <th className="text-left rtl:text-right py-3 px-4 font-semibold">
+                      {isRTL ? 'الإجراءات' : 'Actions'}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredArticles.map((article) => (
+                    <tr key={article.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center">
+                          {article.image && (
+                            <img 
+                              src={article.image} 
+                              alt="Article" 
+                              className="w-12 h-12 object-cover rounded mr-3 rtl:mr-0 rtl:ml-3"
+                            />
+                          )}
+                          <div>
+                            <div className="font-medium text-gray-900 line-clamp-1">
+                              {isRTL ? article.titleAr : article.titleEn || article.titleAr}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {article.views} {isRTL ? 'مشاهدة' : 'views'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center">
+                          <img 
+                            src={article.authorImage} 
+                            alt="Author" 
+                            className="w-8 h-8 rounded-full mr-2 rtl:mr-0 rtl:ml-2"
+                          />
+                          <span className="text-sm">{article.authorName}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant="secondary" className="text-xs">
+                          {categories.find(c => c.id === article.category)?.name}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-600">
                         {new Date(article.date).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US')}
-                      </div>
-                    </div>
-                    
-                    <div className="flex space-x-2 rtl:space-x-reverse">
-                      <Button
-                        onClick={() => handleEdit(article)}
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                      >
-                        <Edit className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
-                        {isRTL ? 'تحرير' : 'Edit'}
-                      </Button>
-                      <Button
-                        onClick={() => handleDelete(article.id)}
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center">
+                          <Switch
+                            checked={article.isActive}
+                            onCheckedChange={() => toggleArticleStatus(article.id)}
+                            size="sm"
+                          />
+                          <span className="ml-2 rtl:ml-0 rtl:mr-2 text-xs">
+                            {article.isActive 
+                              ? (isRTL ? 'نشط' : 'Active')
+                              : (isRTL ? 'مخفي' : 'Hidden')
+                            }
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex space-x-2 rtl:space-x-reverse">
+                          <Button
+                            onClick={() => handleEdit(article)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            onClick={() => handleDelete(article.id)}
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Preview Modal */}
+      <PreviewModal />
     </div>
   );
 }

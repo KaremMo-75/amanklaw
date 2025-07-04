@@ -13,7 +13,8 @@ import {
   ArrowRight, 
   Search, 
   BookOpen,
-  Clock
+  Clock,
+  Eye
 } from 'lucide-react';
 
 interface Article {
@@ -22,16 +23,18 @@ interface Article {
   titleEn: string;
   contentAr: string;
   contentEn: string;
-  excerptAr: string;
-  excerptEn: string;
-  author: string;
+  isActive: boolean;
+  slug: string;
+  metaTitle: string;
+  metaDescription: string;
+  metaKeywords: string;
+  authorId: string;
+  authorName: string;
+  authorImage: string;
   date: string;
   category: string;
-  categoryNameAr: string;
-  categoryNameEn: string;
-  readTime: string;
-  image: string;
   tags: string[];
+  image: string;
   views: number;
   createdAt: string;
   updatedAt: string;
@@ -44,139 +47,111 @@ export default function BlogPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
-    // Load articles from localStorage or initialize with default data
-    const savedArticles = localStorage.getItem('articles');
-    if (savedArticles) {
-      setArticles(JSON.parse(savedArticles));
+    // Load articles from localStorage and filter only active ones
+    const savedArticles = JSON.parse(localStorage.getItem('articles') || '[]');
+    const activeArticles = savedArticles.filter((article: Article) => article.isActive);
+    
+    if (activeArticles.length === 0) {
+      // Initialize with default articles if none exist
+      initializeDefaultArticles();
     } else {
-      // Initialize with default articles data
-      const defaultArticles: Article[] = [
-        {
-          id: '1',
-          titleAr: 'التطورات الجديدة في قانون الشركات السعودي',
-          titleEn: 'New Developments in Saudi Corporate Law',
-          excerptAr: 'نظرة شاملة على التحديثات الأخيرة في قانون الشركات وتأثيرها على الأعمال التجارية',
-          excerptEn: 'A comprehensive look at recent updates in corporate law and their impact on business',
-          contentAr: 'شهد قانون الشركات السعودي تطورات مهمة خلال العام الماضي، حيث تم إدخال تعديلات جوهرية تهدف إلى تعزيز بيئة الأعمال وجذب الاستثمارات. هذه التطورات تشمل تبسيط إجراءات تأسيس الشركات، وتحديث آليات الحوكمة، وتطوير أطر العمل للشركات الناشئة.',
-          contentEn: 'Saudi corporate law has witnessed important developments over the past year, with substantial amendments introduced to enhance the business environment and attract investments. These developments include simplifying company establishment procedures, updating governance mechanisms, and developing frameworks for startups.',
-          author: isRTL ? 'المحامي أحمد محمد' : 'Ahmed Mohammed',
-          date: '2024-01-15',
-          category: 'commercial',
-          categoryNameAr: 'القانون التجاري',
-          categoryNameEn: 'Commercial Law',
-          readTime: isRTL ? '5 دقائق' : '5 min read',
-          image: 'https://images.pexels.com/photos/590020/pexels-photo-590020.jpeg?auto=compress&cs=tinysrgb&w=600',
-          tags: isRTL ? ['قانون الشركات', 'الأعمال', 'الاستثمار'] : ['Corporate Law', 'Business', 'Investment'],
-          views: 245,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          titleAr: 'حقوق الطفل في قضايا الحضانة: دليل شامل',
-          titleEn: 'Child Rights in Custody Cases: A Comprehensive Guide',
-          excerptAr: 'كيف يحمي القانون السعودي حقوق الطفل في قضايا الحضانة والنفقة',
-          excerptEn: 'How Saudi law protects child rights in custody and alimony cases',
-          contentAr: 'تعتبر حماية حقوق الطفل من أهم المبادئ في النظام القضائي السعودي، خاصة في قضايا الحضانة والنفقة. يركز القانون على مصلحة الطفل العليا كمعيار أساسي في جميع القرارات المتعلقة بالحضانة.',
-          contentEn: 'Protecting child rights is one of the most important principles in the Saudi judicial system, especially in custody and alimony cases. The law focuses on the best interests of the child as a fundamental criterion in all custody-related decisions.',
-          author: isRTL ? 'المحامية فاطمة الزهراني' : 'Fatima Al-Zahrani',
-          date: '2024-01-10',
-          category: 'family',
-          categoryNameAr: 'قانون الأسرة',
-          categoryNameEn: 'Family Law',
-          readTime: isRTL ? '7 دقائق' : '7 min read',
-          image: 'https://images.pexels.com/photos/1720186/pexels-photo-1720186.jpeg?auto=compress&cs=tinysrgb&w=600',
-          tags: isRTL ? ['حقوق الطفل', 'الحضانة', 'قانون الأسرة'] : ['Child Rights', 'Custody', 'Family Law'],
-          views: 189,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '3',
-          titleAr: 'التحكيم التجاري: البديل الأمثل لحل النزاعات',
-          titleEn: 'Commercial Arbitration: The Optimal Alternative for Dispute Resolution',
-          excerptAr: 'مزايا التحكيم التجاري وكيفية الاستفادة منه في حل النزاعات التجارية',
-          excerptEn: 'Advantages of commercial arbitration and how to benefit from it in resolving commercial disputes',
-          contentAr: 'يعتبر التحكيم التجاري وسيلة فعالة لحل النزاعات التجارية، حيث يوفر مرونة أكبر وسرعة في الفصل مقارنة بالمحاكم التقليدية. كما يتميز بالسرية والخصوصية التي تحتاجها الشركات.',
-          contentEn: 'Commercial arbitration is an effective means of resolving commercial disputes, offering greater flexibility and speed in resolution compared to traditional courts. It also features the confidentiality and privacy that companies need.',
-          author: isRTL ? 'المحامي خالد العتيبي' : 'Khalid Al-Otaibi',
-          date: '2024-01-05',
-          category: 'commercial',
-          categoryNameAr: 'القانون التجاري',
-          categoryNameEn: 'Commercial Law',
-          readTime: isRTL ? '6 دقائق' : '6 min read',
-          image: 'https://images.pexels.com/photos/5668772/pexels-photo-5668772.jpeg?auto=compress&cs=tinysrgb&w=600',
-          tags: isRTL ? ['التحكيم', 'النزاعات التجارية', 'القانون'] : ['Arbitration', 'Commercial Disputes', 'Law'],
-          views: 156,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '4',
-          titleAr: 'قانون العمل الجديد: ما يجب أن يعرفه أصحاب العمل',
-          titleEn: 'New Labor Law: What Employers Need to Know',
-          excerptAr: 'التحديثات الأخيرة في قانون العمل وتأثيرها على العلاقة بين أصحاب العمل والموظفين',
-          excerptEn: 'Recent updates in labor law and their impact on employer-employee relationships',
-          contentAr: 'شهد قانون العمل السعودي تحديثات مهمة تهدف إلى تعزيز حقوق العمال وتحسين بيئة العمل. هذه التحديثات تتضمن تنظيم ساعات العمل، وحماية أجور العمال، وتطوير آليات حل النزاعات العمالية.',
-          contentEn: 'Saudi labor law has undergone important updates aimed at enhancing worker rights and improving the work environment. These updates include regulating working hours, protecting worker wages, and developing labor dispute resolution mechanisms.',
-          author: isRTL ? 'المحامية نورا الحربي' : 'Nora Al-Harbi',
-          date: '2023-12-28',
-          category: 'labor',
-          categoryNameAr: 'قانون العمل',
-          categoryNameEn: 'Labor Law',
-          readTime: isRTL ? '8 دقائق' : '8 min read',
-          image: 'https://images.pexels.com/photos/7688336/pexels-photo-7688336.jpeg?auto=compress&cs=tinysrgb&w=600',
-          tags: isRTL ? ['قانون العمل', 'حقوق العمال', 'التوظيف'] : ['Labor Law', 'Worker Rights', 'Employment'],
-          views: 203,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '5',
-          titleAr: 'الملكية الفكرية في العصر الرقمي',
-          titleEn: 'Intellectual Property in the Digital Age',
-          excerptAr: 'حماية الملكية الفكرية في ظل التطور التكنولوجي والتجارة الإلكترونية',
-          excerptEn: 'Protecting intellectual property amid technological development and e-commerce',
-          contentAr: 'مع تزايد أهمية التكنولوجيا والتجارة الإلكترونية، أصبحت حماية الملكية الفكرية أكثر تعقيداً وأهمية. يناقش هذا المقال التحديات الجديدة والحلول المتاحة لحماية الحقوق الفكرية.',
-          contentEn: 'With the increasing importance of technology and e-commerce, protecting intellectual property has become more complex and important. This article discusses new challenges and available solutions for protecting intellectual rights.',
-          author: isRTL ? 'المحامي أحمد محمد' : 'Ahmed Mohammed',
-          date: '2023-12-20',
-          category: 'civil',
-          categoryNameAr: 'القانون المدني',
-          categoryNameEn: 'Civil Law',
-          readTime: isRTL ? '6 دقائق' : '6 min read',
-          image: 'https://images.pexels.com/photos/5668473/pexels-photo-5668473.jpeg?auto=compress&cs=tinysrgb&w=600',
-          tags: isRTL ? ['الملكية الفكرية', 'التكنولوجيا', 'القانون الرقمي'] : ['Intellectual Property', 'Technology', 'Digital Law'],
-          views: 178,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '6',
-          titleAr: 'دليل الاستثمار العقاري القانوني',
-          titleEn: 'Legal Real Estate Investment Guide',
-          excerptAr: 'كل ما تحتاج معرفته عن الجوانب القانونية للاستثمار العقاري في المملكة',
-          excerptEn: 'Everything you need to know about legal aspects of real estate investment in the Kingdom',
-          contentAr: 'يقدم هذا الدليل نظرة شاملة على القوانين والأنظمة المنظمة للاستثمار العقاري في المملكة، بما في ذلك حقوق الملكية، وإجراءات التسجيل، والضرائب العقارية.',
-          contentEn: 'This guide provides a comprehensive overview of laws and regulations governing real estate investment in the Kingdom, including property rights, registration procedures, and real estate taxes.',
-          author: isRTL ? 'المحامي خالد العتيبي' : 'Khalid Al-Otaibi',
-          date: '2023-12-15',
-          category: 'real-estate',
-          categoryNameAr: 'العقارات',
-          categoryNameEn: 'Real Estate',
-          readTime: isRTL ? '9 دقائق' : '9 min read',
-          image: 'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg?auto=compress&cs=tinysrgb&w=600',
-          tags: isRTL ? ['العقارات', 'الاستثمار', 'الملكية'] : ['Real Estate', 'Investment', 'Property'],
-          views: 134,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ];
-      
-      setArticles(defaultArticles);
-      localStorage.setItem('articles', JSON.stringify(defaultArticles));
+      setArticles(activeArticles);
     }
-  }, [isRTL]);
+  }, []);
+
+  const initializeDefaultArticles = () => {
+    const defaultArticles: Article[] = [
+      {
+        id: '1',
+        titleAr: 'التطورات الجديدة في قانون الشركات السعودي',
+        titleEn: 'New Developments in Saudi Corporate Law',
+        contentAr: `
+          <h2>مقدمة</h2>
+          <p>شهد قانون الشركات السعودي تطورات مهمة خلال العام الماضي، حيث تم إدخال تعديلات جوهرية تهدف إلى تعزيز بيئة الأعمال وجذب الاستثمارات.</p>
+          
+          <h2>أبرز التطورات</h2>
+          <h3>1. تبسيط إجراءات التأسيس</h3>
+          <p>تم تبسيط إجراءات تأسيس الشركات بشكل كبير، حيث أصبح بإمكان المستثمرين إنجاز معاملات التأسيس في وقت قياسي لا يتجاوز 24 ساعة في بعض الحالات.</p>
+          
+          <h3>2. تحديث آليات الحوكمة</h3>
+          <p>تم تطوير قواعد الحوكمة للشركات المساهمة لتتماشى مع أفضل الممارسات الدولية، مما يعزز من شفافية الشركات ويحمي حقوق المساهمين.</p>
+        `,
+        contentEn: `
+          <h2>Introduction</h2>
+          <p>Saudi corporate law has witnessed important developments over the past year, with substantial amendments introduced to enhance the business environment and attract investments.</p>
+          
+          <h2>Key Developments</h2>
+          <h3>1. Simplified Establishment Procedures</h3>
+          <p>Company establishment procedures have been significantly simplified, allowing investors to complete incorporation processes in record time, sometimes within 24 hours.</p>
+          
+          <h3>2. Updated Governance Mechanisms</h3>
+          <p>Governance rules for joint-stock companies have been developed to align with international best practices, enhancing corporate transparency and protecting shareholder rights.</p>
+        `,
+        isActive: true,
+        slug: 'new-developments-saudi-corporate-law',
+        metaTitle: 'التطورات الجديدة في قانون الشركات السعودي | أمانك',
+        metaDescription: 'تعرف على أحدث التطورات في قانون الشركات السعودي وتأثيرها على بيئة الأعمال',
+        metaKeywords: 'قانون الشركات، السعودية، الأعمال، الاستثمار',
+        authorId: '1',
+        authorName: isRTL ? 'المحامي أحمد محمد' : 'Ahmed Mohammed',
+        authorImage: 'https://images.pexels.com/photos/2182970/pexels-photo-2182970.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop',
+        date: '2024-01-15',
+        category: 'commercial',
+        tags: isRTL ? ['قانون الشركات', 'الأعمال', 'الاستثمار'] : ['Corporate Law', 'Business', 'Investment'],
+        image: 'https://images.pexels.com/photos/590020/pexels-photo-590020.jpeg?auto=compress&cs=tinysrgb&w=600',
+        views: 245,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: '2',
+        titleAr: 'حقوق الطفل في قضايا الحضانة: دليل شامل',
+        titleEn: 'Child Rights in Custody Cases: A Comprehensive Guide',
+        contentAr: `
+          <h2>أهمية حماية حقوق الطفل</h2>
+          <p>تعتبر حماية حقوق الطفل من أهم المبادئ في النظام القضائي السعودي، خاصة في قضايا الحضانة والنفقة. يركز القانون على مصلحة الطفل العليا كمعيار أساسي في جميع القرارات المتعلقة بالحضانة.</p>
+          
+          <h2>المبادئ الأساسية</h2>
+          <ul>
+            <li>مصلحة الطفل العليا</li>
+            <li>الحق في الرعاية والحماية</li>
+            <li>الحق في التعليم والصحة</li>
+            <li>الحق في التواصل مع الوالدين</li>
+          </ul>
+        `,
+        contentEn: `
+          <h2>Importance of Child Rights Protection</h2>
+          <p>Protecting child rights is one of the most important principles in the Saudi judicial system, especially in custody and alimony cases. The law focuses on the best interests of the child as a fundamental criterion in all custody-related decisions.</p>
+          
+          <h2>Basic Principles</h2>
+          <ul>
+            <li>Best interests of the child</li>
+            <li>Right to care and protection</li>
+            <li>Right to education and health</li>
+            <li>Right to communicate with parents</li>
+          </ul>
+        `,
+        isActive: true,
+        slug: 'child-rights-custody-cases-guide',
+        metaTitle: 'حقوق الطفل في قضايا الحضانة | دليل شامل',
+        metaDescription: 'دليل شامل حول حقوق الطفل في قضايا الحضانة والنفقة في القانون السعودي',
+        metaKeywords: 'حقوق الطفل، الحضانة، قانون الأسرة، النفقة',
+        authorId: '2',
+        authorName: isRTL ? 'المحامية فاطمة الزهراني' : 'Fatima Al-Zahrani',
+        authorImage: 'https://images.pexels.com/photos/3777943/pexels-photo-3777943.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop',
+        date: '2024-01-10',
+        category: 'family',
+        tags: isRTL ? ['حقوق الطفل', 'الحضانة', 'قانون الأسرة'] : ['Child Rights', 'Custody', 'Family Law'],
+        image: 'https://images.pexels.com/photos/1720186/pexels-photo-1720186.jpeg?auto=compress&cs=tinysrgb&w=600',
+        views: 189,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+    
+    setArticles(defaultArticles);
+    localStorage.setItem('articles', JSON.stringify(defaultArticles));
+  };
 
   const categories = isRTL ? [
     { id: 'all', name: 'جميع المقالات', count: articles.length },
@@ -197,15 +172,40 @@ export default function BlogPage() {
   ];
 
   const filteredArticles = articles.filter(article => {
-    const title = isRTL ? article.titleAr : article.titleEn;
-    const excerpt = isRTL ? article.excerptAr : article.excerptEn;
+    const title = isRTL ? article.titleAr : article.titleEn || article.titleAr;
+    const content = isRTL ? article.contentAr : article.contentEn || article.contentAr;
     const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         excerpt.toLowerCase().includes(searchTerm.toLowerCase());
+                         content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         article.authorName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || article.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
   const featuredArticle = filteredArticles[0];
+
+  const getCategoryName = (categoryId: string) => {
+    const categoryMap: { [key: string]: { ar: string; en: string } } = {
+      'civil': { ar: 'القانون المدني', en: 'Civil Law' },
+      'commercial': { ar: 'القانون التجاري', en: 'Commercial Law' },
+      'family': { ar: 'قانون الأسرة', en: 'Family Law' },
+      'criminal': { ar: 'القانون الجنائي', en: 'Criminal Law' },
+      'real-estate': { ar: 'العقارات', en: 'Real Estate' },
+      'labor': { ar: 'قانون العمل', en: 'Labor Law' },
+    };
+    return isRTL ? categoryMap[categoryId]?.ar : categoryMap[categoryId]?.en;
+  };
+
+  const stripHtml = (html: string) => {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
+
+  const getReadTime = (content: string) => {
+    const words = stripHtml(content).split(' ').length;
+    const readTime = Math.ceil(words / 200); // Average reading speed
+    return isRTL ? `${readTime} دقائق` : `${readTime} min read`;
+  };
 
   return (
     <div className="min-h-screen">
@@ -213,7 +213,9 @@ export default function BlogPage() {
       <section className="bg-gradient-to-br from-blue-900 to-blue-800 dark:from-gray-900 dark:to-gray-800 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">{t('blogTitle')}</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              {isRTL ? 'مدونة أمانك القانونية' : 'Amank Legal Blog'}
+            </h1>
             <p className="text-xl text-blue-100 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
               {isRTL 
                 ? 'اكتشف أحدث المقالات والتحديثات القانونية من خبراء أمانك'
@@ -239,41 +241,45 @@ export default function BlogPage() {
                 <div className="aspect-video lg:aspect-square">
                   <img 
                     src={featuredArticle.image} 
-                    alt={isRTL ? featuredArticle.titleAr : featuredArticle.titleEn}
+                    alt={isRTL ? featuredArticle.titleAr : featuredArticle.titleEn || featuredArticle.titleAr}
                     className="w-full h-full object-cover"
-                    loading="lazy"
+                    loading="eager"
                   />
                 </div>
                 <CardContent className="p-8 flex flex-col justify-center">
                   <div className="flex items-center mb-4">
                     <Badge variant="secondary" className="mr-3 rtl:mr-0 rtl:ml-3">
-                      {isRTL ? featuredArticle.categoryNameAr : featuredArticle.categoryNameEn}
+                      {getCategoryName(featuredArticle.category)}
                     </Badge>
                     <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                       <Clock className="w-4 h-4 mr-1 rtl:mr-0 rtl:ml-1" />
-                      {featuredArticle.readTime}
+                      {getReadTime(isRTL ? featuredArticle.contentAr : featuredArticle.contentEn || featuredArticle.contentAr)}
                     </div>
                   </div>
                   
                   <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
-                    {isRTL ? featuredArticle.titleAr : featuredArticle.titleEn}
+                    {isRTL ? featuredArticle.titleAr : featuredArticle.titleEn || featuredArticle.titleAr}
                   </h3>
                   
                   <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
-                    {isRTL ? featuredArticle.excerptAr : featuredArticle.excerptEn}
+                    {stripHtml(isRTL ? featuredArticle.contentAr : featuredArticle.contentEn || featuredArticle.contentAr).substring(0, 200)}...
                   </p>
                   
                   <div className="flex items-center justify-between">
                     <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                      <User className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
-                      <span className="mr-4 rtl:mr-0 rtl:ml-4">{featuredArticle.author}</span>
+                      <img 
+                        src={featuredArticle.authorImage} 
+                        alt="Author" 
+                        className="w-8 h-8 rounded-full mr-2 rtl:mr-0 rtl:ml-2"
+                      />
+                      <span className="mr-4 rtl:mr-0 rtl:ml-4">{featuredArticle.authorName}</span>
                       <Calendar className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
                       <span>{new Date(featuredArticle.date).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US')}</span>
                     </div>
                     
                     <Button asChild>
-                      <Link href={`/blog/${featuredArticle.id}`}>
-                        {t('readMore')}
+                      <Link href={`/blog/${featuredArticle.slug || featuredArticle.id}`}>
+                        {isRTL ? 'اقرأ المزيد' : 'Read More'}
                         <ArrowRight className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 rtl:rotate-180" />
                       </Link>
                     </Button>
@@ -323,7 +329,9 @@ export default function BlogPage() {
       <section className="py-12 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('latestArticles')}</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {isRTL ? 'أحدث المقالات' : 'Latest Articles'}
+            </h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -332,7 +340,7 @@ export default function BlogPage() {
                 <div className="aspect-video">
                   <img 
                     src={article.image} 
-                    alt={isRTL ? article.titleAr : article.titleEn}
+                    alt={isRTL ? article.titleAr : article.titleEn || article.titleAr}
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />
@@ -341,35 +349,46 @@ export default function BlogPage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between mb-3">
                     <Badge variant="secondary">
-                      {isRTL ? article.categoryNameAr : article.categoryNameEn}
+                      {getCategoryName(article.category)}
                     </Badge>
                     <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                      <Clock className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
-                      {article.readTime}
+                      <Eye className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
+                      {article.views}
                     </div>
                   </div>
                   
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight line-clamp-2">
-                    {isRTL ? article.titleAr : article.titleEn}
+                    {isRTL ? article.titleAr : article.titleEn || article.titleAr}
                   </h3>
                 </CardHeader>
                 
                 <CardContent className="pt-0">
                   <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4 line-clamp-3">
-                    {isRTL ? article.excerptAr : article.excerptEn}
+                    {stripHtml(isRTL ? article.contentAr : article.contentEn || article.contentAr).substring(0, 150)}...
                   </p>
                   
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                      <User className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
-                      <span className="mr-3 rtl:mr-0 rtl:ml-3">{article.author}</span>
+                      <img 
+                        src={article.authorImage} 
+                        alt="Author" 
+                        className="w-6 h-6 rounded-full mr-2 rtl:mr-0 rtl:ml-2"
+                      />
+                      <span className="mr-3 rtl:mr-0 rtl:ml-3">{article.authorName}</span>
                       <Calendar className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
                       <span>{new Date(article.date).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US')}</span>
                     </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                      <Clock className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" />
+                      {getReadTime(isRTL ? article.contentAr : article.contentEn || article.contentAr)}
+                    </div>
                     
                     <Button asChild size="sm" variant="ghost">
-                      <Link href={`/blog/${article.id}`}>
-                        {t('readMore')}
+                      <Link href={`/blog/${article.slug || article.id}`}>
+                        {isRTL ? 'اقرأ المزيد' : 'Read More'}
                         <ArrowRight className="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1 rtl:rotate-180" />
                       </Link>
                     </Button>
