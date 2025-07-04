@@ -6,9 +6,23 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Scale, Target, Eye, Users, Award, CheckCircle, Globe, Briefcase } from 'lucide-react';
 
+interface Lawyer {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  titleAr: string;
+  titleEn: string;
+  specialtyAr: string;
+  specialtyEn: string;
+  experience: string;
+  image: string;
+  createdAt: string;
+}
+
 export default function AboutPage() {
   const { isRTL, t } = useLanguage();
   const [siteContent, setSiteContent] = useState<any>(null);
+  const [lawyers, setLawyers] = useState<Lawyer[]>([]);
 
   useEffect(() => {
     // Load site content from localStorage
@@ -16,7 +30,68 @@ export default function AboutPage() {
     if (savedContent) {
       setSiteContent(JSON.parse(savedContent));
     }
-  }, []);
+
+    // Load lawyers from localStorage or initialize with default data
+    const savedLawyers = localStorage.getItem('lawyers');
+    if (savedLawyers) {
+      setLawyers(JSON.parse(savedLawyers));
+    } else {
+      // Initialize with default team data
+      const defaultTeam: Lawyer[] = [
+        {
+          id: '1',
+          nameAr: 'المحامي أحمد محمد',
+          nameEn: 'Ahmed Mohammed',
+          titleAr: 'الشريك المؤسس',
+          titleEn: 'Founding Partner',
+          specialtyAr: 'القانون التجاري والشركات',
+          specialtyEn: 'Commercial & Corporate Law',
+          experience: isRTL ? '20 سنة خبرة' : '20 Years Experience',
+          image: 'https://images.pexels.com/photos/2182970/pexels-photo-2182970.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: '2',
+          nameAr: 'المحامية فاطمة الزهراني',
+          nameEn: 'Fatima Al-Zahrani',
+          titleAr: 'شريك أول',
+          titleEn: 'Senior Partner',
+          specialtyAr: 'قانون الأسرة والأحوال الشخصية',
+          specialtyEn: 'Family & Personal Status Law',
+          experience: isRTL ? '15 سنة خبرة' : '15 Years Experience',
+          image: 'https://images.pexels.com/photos/3777943/pexels-photo-3777943.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: '3',
+          nameAr: 'المحامي خالد العتيبي',
+          nameEn: 'Khalid Al-Otaibi',
+          titleAr: 'محامي أول',
+          titleEn: 'Senior Attorney',
+          specialtyAr: 'القانون الجنائي والدفاع',
+          specialtyEn: 'Criminal Defense Law',
+          experience: isRTL ? '12 سنة خبرة' : '12 Years Experience',
+          image: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: '4',
+          nameAr: 'المحامية نورا الحربي',
+          nameEn: 'Nora Al-Harbi',
+          titleAr: 'محامية أولى',
+          titleEn: 'Senior Attorney',
+          specialtyAr: 'قانون العمل والتأمينات',
+          specialtyEn: 'Labor & Insurance Law',
+          experience: isRTL ? '10 سنوات خبرة' : '10 Years Experience',
+          image: 'https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop',
+          createdAt: new Date().toISOString()
+        },
+      ];
+      
+      setLawyers(defaultTeam);
+      localStorage.setItem('lawyers', JSON.stringify(defaultTeam));
+    }
+  }, [isRTL]);
 
   // Use saved content or fallback to defaults
   const aboutTitle = siteContent?.about?.titleAr && siteContent?.about?.titleEn
@@ -40,37 +115,6 @@ export default function AboutPage() {
     { icon: Award, value: '15+', label: isRTL ? 'سنة خبرة' : 'Years Experience' },
     { icon: CheckCircle, value: '95%', label: isRTL ? 'معدل النجاح' : 'Success Rate' },
     { icon: Globe, value: '10+', label: isRTL ? 'مجال قانوني' : 'Legal Areas' },
-  ];
-
-  const team = [
-    {
-      name: isRTL ? 'المحامي أحمد محمد' : 'Ahmed Mohammed',
-      title: isRTL ? 'الشريك المؤسس' : 'Founding Partner',
-      specialization: isRTL ? 'القانون التجاري والشركات' : 'Commercial & Corporate Law',
-      experience: isRTL ? '20 سنة خبرة' : '20 Years Experience',
-      image: 'https://images.pexels.com/photos/2182970/pexels-photo-2182970.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'
-    },
-    {
-      name: isRTL ? 'المحامية فاطمة الزهراني' : 'Fatima Al-Zahrani',
-      title: isRTL ? 'شريك أول' : 'Senior Partner',
-      specialization: isRTL ? 'قانون الأسرة والأحوال الشخصية' : 'Family & Personal Status Law',
-      experience: isRTL ? '15 سنة خبرة' : '15 Years Experience',
-      image: 'https://images.pexels.com/photos/3777943/pexels-photo-3777943.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'
-    },
-    {
-      name: isRTL ? 'المحامي خالد العتيبي' : 'Khalid Al-Otaibi',
-      title: isRTL ? 'محامي أول' : 'Senior Attorney',
-      specialization: isRTL ? 'القانون الجنائي والدفاع' : 'Criminal Defense Law',
-      experience: isRTL ? '12 سنة خبرة' : '12 Years Experience',
-      image: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'
-    },
-    {
-      name: isRTL ? 'المحامية نورا الحربي' : 'Nora Al-Harbi',
-      title: isRTL ? 'محامية أولى' : 'Senior Attorney',
-      specialization: isRTL ? 'قانون العمل والتأمينات' : 'Labor & Insurance Law',
-      experience: isRTL ? '10 سنوات خبرة' : '10 Years Experience',
-      image: 'https://images.pexels.com/photos/3785079/pexels-photo-3785079.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'
-    },
   ];
 
   return (
@@ -213,20 +257,26 @@ export default function AboutPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {team.map((member, index) => (
-              <Card key={index} className="bg-white shadow-lg border-0 hover:shadow-xl transition-shadow duration-300">
+            {lawyers.map((lawyer) => (
+              <Card key={lawyer.id} className="bg-white shadow-lg border-0 hover:shadow-xl transition-shadow duration-300">
                 <CardContent className="p-6 text-center">
                   <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden">
                     <img 
-                      src={member.image} 
-                      alt={member.name}
+                      src={lawyer.image} 
+                      alt={isRTL ? lawyer.nameAr : lawyer.nameEn}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{member.name}</h3>
-                  <Badge variant="secondary" className="mb-3">{member.title}</Badge>
-                  <p className="text-sm text-gray-600 mb-2">{member.specialization}</p>
-                  <p className="text-xs text-blue-600 font-medium">{member.experience}</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">
+                    {isRTL ? lawyer.nameAr : lawyer.nameEn}
+                  </h3>
+                  <Badge variant="secondary" className="mb-3">
+                    {isRTL ? lawyer.titleAr : lawyer.titleEn}
+                  </Badge>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {isRTL ? lawyer.specialtyAr : lawyer.specialtyEn}
+                  </p>
+                  <p className="text-xs text-blue-600 font-medium">{lawyer.experience}</p>
                 </CardContent>
               </Card>
             ))}
