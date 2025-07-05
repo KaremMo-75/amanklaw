@@ -26,6 +26,7 @@ export default function BlogPostClient() {
   const articles = [
     {
       id: '1',
+      slug: 'new-developments-saudi-corporate-law',
       title: isRTL ? 'التطورات الجديدة في قانون الشركات السعودي' : 'New Developments in Saudi Corporate Law',
       content: isRTL
         ? `شهد قانون الشركات السعودي تطورات مهمة خلال العام الماضي، حيث تم إدخال تعديلات جوهرية تهدف إلى تعزيز بيئة الأعمال وجذب الاستثمارات.
@@ -84,10 +85,49 @@ These developments are designed to achieve the goals of Saudi Vision 2030 in div
       image: 'https://images.pexels.com/photos/590020/pexels-photo-590020.jpeg?auto=compress&cs=tinysrgb&w=1200',
       tags: isRTL ? ['قانون الشركات', 'الأعمال', 'الاستثمار'] : ['Corporate Law', 'Business', 'Investment']
     },
-    // Add more articles as needed
+    {
+      id: '2',
+      slug: 'child-rights-custody-cases-guide',
+      title: isRTL ? 'حقوق الطفل في قضايا الحضانة: دليل شامل' : 'Child Rights in Custody Cases: A Comprehensive Guide',
+      content: isRTL
+        ? `تعتبر حماية حقوق الطفل من أهم المبادئ في النظام القضائي السعودي، خاصة في قضايا الحضانة والنفقة.
+
+## المبادئ الأساسية
+
+### 1. مصلحة الطفل العليا
+يركز القانون على مصلحة الطفل العليا كمعيار أساسي في جميع القرارات المتعلقة بالحضانة.
+
+### 2. الحق في الرعاية
+كل طفل له الحق في الحصول على الرعاية الكاملة من الوالدين.
+
+## الخلاصة
+
+حماية حقوق الطفل أولوية قصوى في النظام القانوني السعودي.`
+        : `Protecting child rights is one of the most important principles in the Saudi judicial system, especially in custody and alimony cases.
+
+## Basic Principles
+
+### 1. Best Interests of the Child
+The law focuses on the best interests of the child as a fundamental criterion in all custody-related decisions.
+
+### 2. Right to Care
+Every child has the right to receive full care from their parents.
+
+## Conclusion
+
+Protecting child rights is a top priority in the Saudi legal system.`,
+      author: isRTL ? 'المحامية فاطمة الزهراني' : 'Fatima Al-Zahrani',
+      date: '2024-01-10',
+      category: 'family',
+      categoryName: isRTL ? 'قانون الأسرة' : 'Family Law',
+      readTime: isRTL ? '3 دقائق' : '3 min read',
+      image: 'https://images.pexels.com/photos/1720186/pexels-photo-1720186.jpeg?auto=compress&cs=tinysrgb&w=1200',
+      tags: isRTL ? ['حقوق الطفل', 'الحضانة', 'قانون الأسرة'] : ['Child Rights', 'Custody', 'Family Law']
+    }
   ];
 
-  const article = articles.find(a => a.id === postId);
+  // Find article by ID or slug
+  const article = articles.find(a => a.id === postId || a.slug === postId);
 
   if (!article) {
     return (
@@ -288,7 +328,7 @@ These developments are designed to achieve the goals of Saudi Vision 2030 in div
                       {new Date(relatedArticle.date).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US')}
                     </div>
                     <Button asChild size="sm" variant="ghost">
-                      <Link href={`/blog/${relatedArticle.id}`}>
+                      <Link href={`/blog/${relatedArticle.slug || relatedArticle.id}`}>
                         {t('readMore')}
                       </Link>
                     </Button>

@@ -6,7 +6,9 @@ export async function generateStaticParams() {
   return [
     { id: '1' },
     { id: '2' },
-    { id: '3' }
+    { id: '3' },
+    { id: 'new-developments-saudi-corporate-law' },
+    { id: 'child-rights-custody-cases-guide' }
   ];
 }
 
