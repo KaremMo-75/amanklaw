@@ -39,6 +39,8 @@ export default function AdminDashboard() {
   const { isRTL, t } = useLanguage();
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
     totalArticles: 0,
     totalViews: 0,
@@ -50,36 +52,50 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     // Check admin authentication
-    const loggedInUser = localStorage.getItem('loggedInUser');
-    if (!loggedInUser) {
+    try {
+      const loggedInUser = localStorage.getItem('loggedInUser');
+      if (!loggedInUser) {
+        console.log('No logged in user found, redirecting to login');
+        router.push('/admin-login');
+        return;
+      }
+
+      const user = JSON.parse(loggedInUser);
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+
+      // Load stats
+      const articles = JSON.parse(localStorage.getItem('cmsArticles') || '[]');
+      const lawyers = JSON.parse(localStorage.getItem('lawyers') || '[]');
+      const adminUsers = JSON.parse(localStorage.getItem('adminUsers') || '[]');
+      const submissions = JSON.parse(localStorage.getItem('contactSubmissions') || '[]');
+      const loginTime = localStorage.getItem('adminLoginTime');
+      
+      setStats({
+        totalArticles: articles.length,
+        totalViews: articles.reduce((sum: number, article: any) => sum + (article.views || 0), 0),
+        totalLawyers: lawyers.length,
+        totalAdmins: adminUsers.length,
+        totalSubmissions: submissions.length,
+        lastLogin: loginTime ? new Date(loginTime).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US') : ''
+      });
+    } catch (error) {
+      console.error('Error checking authentication:', error);
       router.push('/admin-login');
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    const user = JSON.parse(loggedInUser);
-    setCurrentUser(user);
-
-    // Load stats
-    const articles = JSON.parse(localStorage.getItem('cmsArticles') || '[]');
-    const lawyers = JSON.parse(localStorage.getItem('lawyers') || '[]');
-    const adminUsers = JSON.parse(localStorage.getItem('adminUsers') || '[]');
-    const submissions = JSON.parse(localStorage.getItem('contactSubmissions') || '[]');
-    const loginTime = localStorage.getItem('adminLoginTime');
-    
-    setStats({
-      totalArticles: articles.length,
-      totalViews: articles.reduce((sum: number, article: any) => sum + (article.views || 0), 0),
-      totalLawyers: lawyers.length,
-      totalAdmins: adminUsers.length,
-      totalSubmissions: submissions.length,
-      lastLogin: loginTime ? new Date(loginTime).toLocaleDateString(isRTL ? 'ar-SA' : 'en-US') : ''
-    });
   }, [router, isRTL]);
 
   const handleLogout = () => {
-    localStorage.removeItem('loggedInUser');
-    localStorage.removeItem('adminLoginTime');
-    router.push('/admin-login');
+    try {
+      localStorage.removeItem('loggedInUser');
+      localStorage.removeItem('adminLoginTime');
+      router.push('/admin-login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      router.push('/admin-login');
+    }
   };
 
   const quickActions = [
@@ -204,6 +220,23 @@ export default function AdminDashboard() {
   const filteredStats = statsCards.filter(stat => 
     !stat.roles || stat.roles.includes(currentUser?.role || 'admin')
   );
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800 mx-auto mb-4"></div>
+          <p className="text-gray-600">{isRTL ? 'جاري التحميل...' : 'Loading...'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if not authenticated
+  if (!isAuthenticated) {
+    return null; // Router will handle redirect
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -18,7 +18,9 @@ import {
   Image as ImageIcon,
   Languages,
   FileText,
-  Tag
+  Tag,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 
 interface Article {
@@ -36,12 +38,22 @@ interface Article {
   views: number;
 }
 
+interface AdminUser {
+  username: string;
+  password: string;
+  role: 'admin' | 'superadmin';
+  createdAt: string;
+}
+
 export default function NewArticlePage() {
   const { isRTL, t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit');
   
+  const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState<Omit<Article, 'id' | 'createdAt' | 'updatedAt' | 'views'>>({
     titleAr: '',
     titleEn: '',
@@ -54,33 +66,47 @@ export default function NewArticlePage() {
   });
   
   const [imagePreview, setImagePreview] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [errors, setErrors] = useState<string[]>([]);
 
   useEffect(() => {
     // Check admin authentication
-    const isAdmin = localStorage.getItem('isAdmin');
-    if (isAdmin !== 'true') {
-      router.push('/admin-login');
-      return;
-    }
-
-    // Load article for editing
-    if (editId) {
-      const articles = JSON.parse(localStorage.getItem('cmsArticles') || '[]');
-      const article = articles.find((a: Article) => a.id === editId);
-      if (article) {
-        setFormData({
-          titleAr: article.titleAr,
-          titleEn: article.titleEn,
-          contentAr: article.contentAr,
-          contentEn: article.contentEn,
-          excerptAr: article.excerptAr,
-          excerptEn: article.excerptEn,
-          category: article.category,
-          image: article.image
-        });
-        setImagePreview(article.image);
+    try {
+      const loggedInUser = localStorage.getItem('loggedInUser');
+      if (!loggedInUser) {
+        console.log('No logged in user found, redirecting to login');
+        router.push('/admin-login');
+        return;
       }
+
+      const user = JSON.parse(loggedInUser);
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+
+      // Load article for editing if editId is provided
+      if (editId) {
+        const articles = JSON.parse(localStorage.getItem('cmsArticles') || '[]');
+        const article = articles.find((a: Article) => a.id === editId);
+        if (article) {
+          setFormData({
+            titleAr: article.titleAr,
+            titleEn: article.titleEn,
+            contentAr: article.contentAr,
+            contentEn: article.contentEn,
+            excerptAr: article.excerptAr,
+            excerptEn: article.excerptEn,
+            category: article.category,
+            image: article.image
+          });
+          setImagePreview(article.image);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking authentication:', error);
+      router.push('/admin-login');
+    } finally {
+      setIsLoading(false);
     }
   }, [router, editId]);
 
@@ -102,6 +128,10 @@ export default function NewArticlePage() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear errors when user starts typing
+    if (errors.length > 0) {
+      setErrors([]);
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,16 +152,38 @@ export default function NewArticlePage() {
     setFormData(prev => ({ ...prev, image: '' }));
   };
 
+  const validateForm = (): boolean => {
+    const newErrors: string[] = [];
+
+    if (!formData.titleAr.trim()) {
+      newErrors.push(isRTL ? 'العنوان بالعربية مطلوب' : 'Arabic title is required');
+    }
+    if (!formData.titleEn.trim()) {
+      newErrors.push(isRTL ? 'العنوان بالإنجليزية مطلوب' : 'English title is required');
+    }
+    if (!formData.contentAr.trim()) {
+      newErrors.push(isRTL ? 'المحتوى بالعربية مطلوب' : 'Arabic content is required');
+    }
+    if (!formData.contentEn.trim()) {
+      newErrors.push(isRTL ? 'المحتوى بالإنجليزية مطلوب' : 'English content is required');
+    }
+    if (!formData.category) {
+      newErrors.push(isRTL ? 'التصنيف مطلوب' : 'Category is required');
+    }
+
+    setErrors(newErrors);
+    return newErrors.length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    // Validate required fields
-    if (!formData.titleAr || !formData.titleEn || !formData.contentAr || !formData.contentEn || !formData.category) {
-      alert(isRTL ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill in all required fields');
-      setIsLoading(false);
+    
+    if (!validateForm()) {
       return;
     }
+
+    setIsSaving(true);
+    setErrors([]);
 
     try {
       const articles = JSON.parse(localStorage.getItem('cmsArticles') || '[]');
@@ -161,17 +213,50 @@ export default function NewArticlePage() {
 
       localStorage.setItem('cmsArticles', JSON.stringify(articles));
       
-      // Show success message
-      alert(isRTL ? 'تم حفظ المقال بنجاح!' : 'Article saved successfully!');
+      setSuccess(isRTL ? 'تم حفظ المقال بنجاح!' : 'Article saved successfully!');
       
-      // Redirect to articles list
-      router.push('/admin/articles');
+      // Clear form if creating new article
+      if (!editId) {
+        setFormData({
+          titleAr: '',
+          titleEn: '',
+          contentAr: '',
+          contentEn: '',
+          excerptAr: '',
+          excerptEn: '',
+          category: '',
+          image: ''
+        });
+        setImagePreview('');
+      }
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+      
     } catch (error) {
-      alert(isRTL ? 'حدث خطأ أثناء حفظ المقال' : 'Error saving article');
+      console.error('Error saving article:', error);
+      setErrors([isRTL ? 'حدث خطأ أثناء حفظ المقال' : 'Error saving article']);
     }
     
-    setIsLoading(false);
+    setIsSaving(false);
   };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800 mx-auto mb-4"></div>
+          <p className="text-gray-600">{isRTL ? 'جاري التحميل...' : 'Loading...'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if not authenticated
+  if (!isAuthenticated) {
+    return null; // Router will handle redirect
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -191,6 +276,12 @@ export default function NewArticlePage() {
                 }
               </h1>
             </div>
+            {success && (
+              <div className="flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+                <CheckCircle className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
+                {success}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -200,6 +291,25 @@ export default function NewArticlePage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Error Display */}
+              {errors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <AlertCircle className="w-5 h-5 text-red-500 mr-2 rtl:mr-0 rtl:ml-2 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-red-800 font-medium mb-1">
+                        {isRTL ? 'يرجى تصحيح الأخطاء التالية:' : 'Please correct the following errors:'}
+                      </h4>
+                      <ul className="text-red-700 text-sm space-y-1">
+                        {errors.map((error, index) => (
+                          <li key={index}>• {error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Article Content */}
               <Card className="bg-white shadow-lg border-0">
                 <CardHeader>
@@ -383,10 +493,10 @@ export default function NewArticlePage() {
                 <CardContent className="p-6">
                   <Button 
                     type="submit" 
-                    disabled={isLoading}
+                    disabled={isSaving}
                     className="w-full bg-blue-800 hover:bg-blue-900"
                   >
-                    {isLoading ? (
+                    {isSaving ? (
                       <div className="flex items-center">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 rtl:mr-0 rtl:ml-2"></div>
                         {isRTL ? 'جاري الحفظ...' : 'Saving...'}

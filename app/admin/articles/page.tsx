@@ -17,7 +17,8 @@ import {
   ArrowLeft,
   FileText,
   Calendar,
-  Filter
+  Filter,
+  CheckCircle
 } from 'lucide-react';
 
 interface Article {
@@ -46,28 +47,45 @@ export default function ManageArticlesPage() {
   const { isRTL, t } = useLanguage();
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [articles, setArticles] = useState<Article[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     // Check admin authentication
-    const loggedInUser = localStorage.getItem('loggedInUser');
-    if (!loggedInUser) {
+    try {
+      const loggedInUser = localStorage.getItem('loggedInUser');
+      if (!loggedInUser) {
+        console.log('No logged in user found, redirecting to login');
+        router.push('/admin-login');
+        return;
+      }
+
+      const user = JSON.parse(loggedInUser);
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+
+      // Load articles
+      loadArticles();
+    } catch (error) {
+      console.error('Error checking authentication:', error);
       router.push('/admin-login');
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    const user = JSON.parse(loggedInUser);
-    setCurrentUser(user);
-
-    // Load articles
-    loadArticles();
   }, [router]);
 
   const loadArticles = () => {
-    const savedArticles = JSON.parse(localStorage.getItem('cmsArticles') || '[]');
-    setArticles(savedArticles);
+    try {
+      const savedArticles = JSON.parse(localStorage.getItem('cmsArticles') || '[]');
+      setArticles(savedArticles);
+    } catch (error) {
+      console.error('Error loading articles:', error);
+      setArticles([]);
+    }
   };
 
   const categories = isRTL ? [
@@ -109,15 +127,39 @@ export default function ManageArticlesPage() {
     }
 
     if (confirm(isRTL ? 'هل أنت متأكد من حذف هذا المقال؟' : 'Are you sure you want to delete this article?')) {
-      const updatedArticles = articles.filter(article => article.id !== articleId);
-      setArticles(updatedArticles);
-      localStorage.setItem('cmsArticles', JSON.stringify(updatedArticles));
+      try {
+        const updatedArticles = articles.filter(article => article.id !== articleId);
+        setArticles(updatedArticles);
+        localStorage.setItem('cmsArticles', JSON.stringify(updatedArticles));
+        setSuccess(isRTL ? 'تم حذف المقال بنجاح!' : 'Article deleted successfully!');
+        setTimeout(() => setSuccess(''), 3000);
+      } catch (error) {
+        console.error('Error deleting article:', error);
+        alert(isRTL ? 'حدث خطأ أثناء حذف المقال' : 'Error deleting article');
+      }
     }
   };
 
   const handleEdit = (articleId: string) => {
     router.push(`/admin/new-article?edit=${articleId}`);
   };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800 mx-auto mb-4"></div>
+          <p className="text-gray-600">{isRTL ? 'جاري التحميل...' : 'Loading...'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if not authenticated
+  if (!isAuthenticated) {
+    return null; // Router will handle redirect
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -134,12 +176,20 @@ export default function ManageArticlesPage() {
                 {isRTL ? 'إدارة المقالات' : 'Manage Articles'}
               </h1>
             </div>
-            <Button asChild className="bg-green-600 hover:bg-green-700">
-              <Link href="/admin/new-article">
-                <Plus className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
-                {isRTL ? 'مقال جديد' : 'New Article'}
-              </Link>
-            </Button>
+            <div className="flex items-center space-x-4 rtl:space-x-reverse">
+              {success && (
+                <div className="flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+                  <CheckCircle className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
+                  {success}
+                </div>
+              )}
+              <Button asChild className="bg-green-600 hover:bg-green-700">
+                <Link href="/admin/new-article">
+                  <Plus className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
+                  {isRTL ? 'مقال جديد' : 'New Article'}
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </div>

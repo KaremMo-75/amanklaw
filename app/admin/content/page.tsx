@@ -63,11 +63,21 @@ interface SiteContent {
   };
 }
 
+interface AdminUser {
+  username: string;
+  password: string;
+  role: 'admin' | 'superadmin';
+  createdAt: string;
+}
+
 export default function ContentManagementPage() {
   const { isRTL, t } = useLanguage();
   const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('homepage');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [siteContent, setSiteContent] = useState<SiteContent>({
     homepage: {
@@ -119,16 +129,28 @@ export default function ContentManagementPage() {
 
   useEffect(() => {
     // Check admin authentication
-    const isAdmin = localStorage.getItem('isAdmin');
-    if (isAdmin !== 'true') {
-      router.push('/admin-login');
-      return;
-    }
+    try {
+      const loggedInUser = localStorage.getItem('loggedInUser');
+      if (!loggedInUser) {
+        console.log('No logged in user found, redirecting to login');
+        router.push('/admin-login');
+        return;
+      }
 
-    // Load saved content
-    const savedContent = localStorage.getItem('siteContent');
-    if (savedContent) {
-      setSiteContent(JSON.parse(savedContent));
+      const user = JSON.parse(loggedInUser);
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+
+      // Load saved content
+      const savedContent = localStorage.getItem('siteContent');
+      if (savedContent) {
+        setSiteContent(JSON.parse(savedContent));
+      }
+    } catch (error) {
+      console.error('Error checking authentication:', error);
+      router.push('/admin-login');
+    } finally {
+      setIsLoading(false);
     }
   }, [router]);
 
@@ -171,23 +193,41 @@ export default function ContentManagementPage() {
   };
 
   const handleSave = async () => {
-    setIsLoading(true);
+    setIsSaving(true);
     
     try {
       localStorage.setItem('siteContent', JSON.stringify(siteContent));
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
+      console.error('Error saving content:', error);
       alert(isRTL ? 'حدث خطأ أثناء حفظ المحتوى' : 'Error saving content');
     }
     
-    setIsLoading(false);
+    setIsSaving(false);
   };
 
   const validateWhatsAppUrl = (url: string) => {
     const whatsappRegex = /^https:\/\/wa\.me\/\d+$/;
     return whatsappRegex.test(url);
   };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800 mx-auto mb-4"></div>
+          <p className="text-gray-600">{isRTL ? 'جاري التحميل...' : 'Loading...'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if not authenticated
+  if (!isAuthenticated) {
+    return null; // Router will handle redirect
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -213,10 +253,10 @@ export default function ContentManagementPage() {
               )}
               <Button 
                 onClick={handleSave}
-                disabled={isLoading}
+                disabled={isSaving}
                 className="bg-blue-800 hover:bg-blue-900"
               >
-                {isLoading ? (
+                {isSaving ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 rtl:mr-0 rtl:ml-2"></div>
                     {isRTL ? 'جاري الحفظ...' : 'Saving...'}
